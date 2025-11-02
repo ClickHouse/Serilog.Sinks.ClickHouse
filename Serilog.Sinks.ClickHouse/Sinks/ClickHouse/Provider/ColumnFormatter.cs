@@ -74,8 +74,11 @@ namespace Serilog.Sinks.ClickHouse.Provider
                 "Single" => default(float),
                 "Double" => default(double),
                 "DateTime" => default(DateTime),
+                "DateTime64" => default(DateTime),
                 "String" => default(String),
-                _ => throw new NotSupportedException()
+                "LowCardinality(String)" => default(String),
+                "UUID" => default(Guid),
+                _ => throw new NotSupportedException(type)
             };
         }
     }
