@@ -19,14 +19,17 @@ namespace Serilog.Sinks.ClickHouse.Provider
             return dict;
         }
 
-        public static List<PropertyInfo> Props<T>()
+        public static Dictionary<PropertyInfo,ColumnAttribute> Props<T>()
         {
-            var dict = new List<PropertyInfo>();
+            var dict = new Dictionary<PropertyInfo,ColumnAttribute>();
             var props = typeof(T).GetProperties();
             foreach (var p in props)
             {
-                if (p.GetCustomAttribute<ColumnAttribute>() != null)
-                    dict.Add(p);
+                var columnAttribute = p.GetCustomAttribute<ColumnAttribute>();
+                if (columnAttribute != null)
+                {
+                    dict.Add(p,columnAttribute);
+                }
             }
 
             return dict;

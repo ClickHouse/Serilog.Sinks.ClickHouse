@@ -14,6 +14,7 @@ namespace Serilog.Sinks.ClickHouse.Extensions
             string tableName,
             int batchPostingLimit,
             TimeSpan period,
+            ColumnOptions columnOptions = null,
             IEnumerable<AdditionalColumn> additionalColumns = null,
             IFormatProvider formatProvider = null,
             LogEventLevel restrictedToMinimumLevel = LogEventLevel.Verbose)
@@ -21,6 +22,7 @@ namespace Serilog.Sinks.ClickHouse.Extensions
             var sink = new ClickHouseSink(
                 connectionString,
                 tableName,
+                columnOptions,
                 additionalColumns,
                 formatProvider);
 
@@ -32,6 +34,28 @@ namespace Serilog.Sinks.ClickHouse.Extensions
             };
 
             return loggerConfiguration.Sink(sink, batchingOptions, restrictedToMinimumLevel);
+        }
+
+        public static LoggerConfiguration ClickHouse(
+            this LoggerSinkConfiguration loggerConfiguration,
+            string connectionString,
+            string tableName,
+            int batchPostingLimit,
+            TimeSpan period,
+            IEnumerable<AdditionalColumn> additionalColumns = null,
+            IFormatProvider formatProvider = null,
+            LogEventLevel restrictedToMinimumLevel = LogEventLevel.Verbose)
+        {
+            return loggerConfiguration.ClickHouse(
+                connectionString,
+                tableName,
+                batchPostingLimit,
+                period,
+                null,
+                additionalColumns,
+                formatProvider,
+                restrictedToMinimumLevel
+            );
         }
     }
 }

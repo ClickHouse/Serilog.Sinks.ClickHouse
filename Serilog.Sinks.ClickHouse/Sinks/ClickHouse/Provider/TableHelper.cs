@@ -8,9 +8,15 @@ namespace Serilog.Sinks.ClickHouse.Provider
         public string Create { get; private set; }
         public string Insert { get; private set; }
 
-        public TableHelper(string name, IEnumerable<AdditionalColumn> additionalColumns = null)
+        public TableHelper(string name, IEnumerable<AdditionalColumn> additionalColumns = null, ColumnOptions columnOptions = null)
         {
             var mapping = ColumnsHelper.Mapping<T>();
+
+            if (columnOptions?.RemoveStandardColumns != null)
+            {
+                mapping.RemoveAll(x => columnOptions.RemoveStandardColumns.Contains(x.Name));
+            }
+
             if (additionalColumns != null)
                 mapping = mapping.Union(additionalColumns.Select(c => new ColumnAttribute { Name = c.Name, Type = c.Type })).ToList();
 
