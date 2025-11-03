@@ -18,6 +18,9 @@ var log = new LoggerConfiguration()
       "test_db.logs",
       50,
       TimeSpan.FromSeconds(30),
+      new ColumnOptions{
+         RemoveStandardColumns = new List<string>{"level","message"}
+      },
       new List<AdditionalColumn>
       {
           new AdditionalColumn { Name = "source", Type = "String" },
@@ -41,6 +44,9 @@ var log = new LoggerConfiguration()
           "tableName": "test_db.logs",
           "batchPostingLimit": 50,
           "period": "00:00:30",
+          "columnOptions": { 
+            "RemoveStandardColumns": ["level","message"]
+            },
           "additionalColumns": [{
               "Name": "source",
               "Type": "String"

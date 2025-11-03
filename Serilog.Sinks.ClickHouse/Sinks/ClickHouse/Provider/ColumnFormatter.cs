@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using Serilog.Events;
 
@@ -8,11 +9,12 @@ namespace Serilog.Sinks.ClickHouse.Provider
 {
     class ColumnFormatter : IEnumerable
     {
-        private static readonly List<PropertyInfo> _props = ColumnsHelper.Props<ColumnFormatter>();
+        private static readonly Dictionary<PropertyInfo,ColumnAttribute> _props = ColumnsHelper.Props<ColumnFormatter>();
 
         private readonly LogEvent _message;
         private readonly IFormatProvider _formatProvider;
         private readonly IEnumerable<AdditionalColumn> _additionslColumns;
+        private readonly IEnumerable<string> _removeStandardColumns;
 
         [Column(Name = "timestamp", Type = "DateTime")]
         public DateTime Timestamp { get => _message.Timestamp.UtcDateTime; }
@@ -21,9 +23,10 @@ namespace Serilog.Sinks.ClickHouse.Provider
         [Column(Name = "message", Type = "String")]
         public string Message { get => _message.RenderMessage(_formatProvider); }
         
-        public ColumnFormatter(LogEvent message, IFormatProvider formatProvider = null, IEnumerable<AdditionalColumn> additionalColumns = null)
+        public ColumnFormatter(LogEvent message, IFormatProvider formatProvider = null, IEnumerable<AdditionalColumn> additionalColumns = null, IEnumerable<string> removeStandardColumns = null)
         {
             _message = message;
+            _removeStandardColumns = removeStandardColumns;
             _additionslColumns = additionalColumns;
             _formatProvider = formatProvider;
         }
@@ -31,27 +34,32 @@ namespace Serilog.Sinks.ClickHouse.Provider
         public IEnumerator GetEnumerator()
         {
             foreach (var p in _props)
-                yield return p.GetValue(this);
-
-            if (_additionslColumns != null)
             {
-                foreach (var col in _additionslColumns)
+                if (_removeStandardColumns is null || !_removeStandardColumns.Contains(p.Value.Name))
                 {
-                    if (!_message.Properties.TryGetValue(col.Name, out var value))
-                    {
-                        yield return Default(col.Type);
-                        continue;
-                    }
-
-                    if(!(value is ScalarValue scalarValue))
-                    {
-                        yield return value.ToString();
-                        continue;
-                    }
-
-                    yield return scalarValue.Value;
+                    yield return p.Key.GetValue(this);
                 }
             }
+
+            if (_additionslColumns != null)
+                {
+                    foreach (var col in _additionslColumns)
+                    {
+                        if (!_message.Properties.TryGetValue(col.Name, out var value))
+                        {
+                            yield return Default(col.Type);
+                            continue;
+                        }
+
+                        if(!(value is ScalarValue scalarValue))
+                        {
+                            yield return value.ToString();
+                            continue;
+                        }
+
+                        yield return scalarValue.Value;
+                    }
+                }
         }
 
         private object Default(string type)

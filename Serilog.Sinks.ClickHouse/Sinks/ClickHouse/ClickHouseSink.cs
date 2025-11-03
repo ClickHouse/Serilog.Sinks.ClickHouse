@@ -14,24 +14,27 @@ namespace Serilog.Sinks.ClickHouse
         private readonly IFormatProvider _formatProvider;
         private readonly ClickHouseProvider<ColumnFormatter> _provider;
         private readonly IEnumerable<AdditionalColumn> _additionalColumns;
+        private readonly ColumnOptions _columnOptions;
 
         public ClickHouseSink(
             string connectionString,
             string tableName,
+            ColumnOptions columnOptions = null,
             IEnumerable<AdditionalColumn> additionalColumns = null,
             IFormatProvider formatProvider = null,
             bool autoCreateSqlTable = true)
         {
+            _columnOptions = columnOptions;
             _additionalColumns = additionalColumns;
             _formatProvider = formatProvider;
-            _provider = new ClickHouseProvider<ColumnFormatter>(tableName, connectionString, additionalColumns, autoCreateSqlTable);
+            _provider = new ClickHouseProvider<ColumnFormatter>(tableName, connectionString, columnOptions, additionalColumns, autoCreateSqlTable);
         }
 
         public async Task EmitBatchAsync(IReadOnlyCollection<LogEvent> events)
         {
             try
             {
-                await _provider.FlushAsync(events.Select(e => new ColumnFormatter(e, _formatProvider, _additionalColumns)));
+                await _provider.FlushAsync(events.Select(e => new ColumnFormatter(e, _formatProvider, _additionalColumns, _columnOptions?.RemoveStandardColumns)));
             }
             catch (Exception ex)
             {

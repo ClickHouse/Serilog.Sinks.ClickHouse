@@ -15,6 +15,7 @@ namespace Serilog.Sinks.ClickHouse.Provider
         public ClickHouseProvider(
             string tableName, 
             string connectionString, 
+            ColumnOptions columnOptions = null, 
             IEnumerable<AdditionalColumn> additionalColumns = null, 
             bool autoCreateSqlTable = true)
         {
@@ -24,7 +25,7 @@ namespace Serilog.Sinks.ClickHouse.Provider
             if (string.IsNullOrWhiteSpace(tableName))
                 throw new ArgumentNullException(nameof(tableName));
 
-            _table = new TableHelper<TColumnFormatter>(tableName, additionalColumns);
+            _table = new TableHelper<TColumnFormatter>(tableName, additionalColumns, columnOptions);
             _connectionString = connectionString;
 
             if (autoCreateSqlTable)
