@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(tree:*)",
+      "Bash(dotnet:*)",
+      "Bash(git -C /mnt/c/Users/asoff/Code/ecosystem/Serilog.Sinks.ClickHouse log --format='%h %s')",
+      "Bash(git -C /mnt/c/Users/asoff/Code/ecosystem/Serilog.Sinks.ClickHouse show HEAD:README.md)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:clickhouse.com)",
+      "WebSearch",
+      "Bash(git -C /mnt/c/Users/asoff/Code/ecosystem/Serilog.Sinks.ClickHouse show HEAD~1:Serilog.Sinks.ClickHouse/Client/IClickHouseClient.cs)",
+      "Bash(git -C /mnt/c/Users/asoff/Code/ecosystem/Serilog.Sinks.ClickHouse log --oneline -10)",
+      "Bash(git -C /mnt/c/Users/asoff/Code/ecosystem/Serilog.Sinks.ClickHouse show af86f0f:Serilog.Sinks.ClickHouse/Client/IClickHouseClient.cs)",
+      "Bash(git -C /mnt/c/Users/asoff/Code/ecosystem/Serilog.Sinks.ClickHouse show b835191:Serilog.Sinks.ClickHouse/Client/IClickHouseClient.cs)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
