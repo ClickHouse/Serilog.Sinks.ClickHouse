@@ -1,6 +1,30 @@
-# Serilog.Sinks.ClickHouse
+<p align="center">
+<img src=".static/logo.svg" width="200px" align="center">
+<h1 align="center">ClickHouse Serilog Sink</h1>
+</p>
+<br/>
+<p align="center">
+<a href="https://www.nuget.org/packages/Serilog.Sinks.ClickHouse">
+<img alt="NuGet Version" src="https://img.shields.io/nuget/v/Serilog.Sinks.ClickHouse">
+</a>
 
-A [Serilog](https://serilog.net/) sink that writes structured log events to [ClickHouse](https://clickhouse.com/). Events are batched for efficient bulk inserts, and the table is auto-created on first write.
+<a href="https://www.nuget.org/packages/Serilog.Sinks.ClickHouse">
+<img alt="NuGet Downloads" src="https://img.shields.io/nuget/dt/Serilog.Sinks.ClickHouse">
+</a>
+
+<a href="https://github.com/ClickHouse/Serilog.Sinks.ClickHouse/actions/workflows/tests.yml">
+<img src="https://github.com/ClickHouse/Serilog.Sinks.ClickHouse/actions/workflows/tests.yml/badge.svg?branch=main">
+</a>
+
+<a href="https://codecov.io/gh/ClickHouse/Serilog.Sinks.ClickHouse">
+<img src="https://codecov.io/gh/ClickHouse/Serilog.Sinks.ClickHouse/graph/badge.svg">
+</a>
+
+</p>
+
+# About
+
+A [Serilog](https://serilog.net/) sink that writes structured log events to [ClickHouse](https://clickhouse.com/). Events are batched for efficient bulk inserts. Optionally, the library handles table creation automatically.
 
 ```
 dotnet add package Serilog.Sinks.ClickHouse
@@ -172,14 +196,13 @@ Log.Logger = new LoggerConfiguration()
 
 ## Dependency Injection / ASP.NET
 
-If you already have a `ClickHouseClient`, `ClickHouseDataSource`, or `ClickHouseClientSettings` registered in your DI container, pass it directly instead of a connection string:
+If you already have a `ClickHouseClient` or `ClickHouseDataSource` registered in your DI container, pass it directly instead of a connection string:
 
-### Using `ClickHouseDataSource` (recommended for .NET 7+)
+### Using `ClickHouseDataSource` (.NET 7+)
 
 ```csharp
 var builder = WebApplication.CreateBuilder(args);
 
-// Register the data source in DI
 builder.Services.AddSingleton(_ =>
     new ClickHouseDataSource("Host=localhost;Port=9000;Database=logs"));
 
@@ -190,23 +213,18 @@ builder.Host.UseSerilog((context, services, loggerConfiguration) =>
 });
 ```
 
-### Using `IClickHouseClient`
+### Using `ClickHouseClient`
 
 ```csharp
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddSingleton<IClickHouseClient>(_ =>
+    new ClickHouseClient("Host=localhost;Port=9000;Database=logs"));
+
 builder.Host.UseSerilog((context, services, loggerConfiguration) =>
 {
     var client = services.GetRequiredService<IClickHouseClient>();
     loggerConfiguration.WriteTo.ClickHouse(client, tableName: "app_logs");
-});
-```
-
-### Using `ClickHouseClientSettings`
-
-```csharp
-builder.Host.UseSerilog((context, services, loggerConfiguration) =>
-{
-    var settings = services.GetRequiredService<ClickHouseClientSettings>();
-    loggerConfiguration.WriteTo.ClickHouse(settings, tableName: "app_logs");
 });
 ```
 
@@ -219,7 +237,7 @@ loggerConfiguration.WriteTo.ClickHouse(options, dataSource); // .NET 7+
 
 ## Connection String
 
-The sink uses [ClickHouse.Driver](https://github.com/ClickHouse/clickhouse-dotnet) for the connection. Connection string format:
+The sink uses [ClickHouse.Driver](https://github.com/ClickHouse/clickhouse-cs) for the connection. Connection string format:
 
 ```
 Host=localhost;Port=9000;Database=logs;User=default;Password=
