@@ -24,9 +24,14 @@ public record CustomEngine : TableEngine
 }
 
 /// <summary>
-/// Simple MergeTree
+/// MergeTree engine with timestamp-based ordering and monthly partitioning.
 /// </summary>
 public record DefaultEngine : TableEngine
 {
-    public override string ToSql() => "";
+    public override string ToSql() =>
+        """
+        ENGINE = MergeTree
+        PARTITION BY toYYYYMM(timestamp)
+        ORDER BY (timestamp)
+        """;
 }
