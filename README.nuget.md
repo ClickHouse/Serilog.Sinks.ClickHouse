@@ -48,7 +48,7 @@ var schema = DefaultSchema.CreateMinimal("app_logs").Build();
 var schema = DefaultSchema.CreateComprehensive("app_logs").Build();
 
 // Start from a preset and add custom columns
-// Each preset returns a SchemaBuilder, which can be furthre customized before calling .Build()
+// Each preset returns a SchemaBuilder, which can be further customized before calling .Build()
 var schema = DefaultSchema.Create("app_logs")
     .AddPropertyColumn("UserId", "Nullable(Int64)")
     .AddPropertyColumn("RequestPath", "Nullable(String)")
