@@ -22,8 +22,10 @@ public class LogEventColumnWriter : ColumnWriterBase
         var sb = StringBuilderPool.Get();
         try
         {
+            var formatter = formatProvider == null? _formatter : new JsonFormatter(formatProvider: formatProvider);
+
             using var writer = new StringWriter(sb);
-            _formatter.Format(logEvent, writer);
+            formatter.Format(logEvent, writer);
             return sb.ToString();
         }
         finally
