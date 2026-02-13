@@ -56,6 +56,20 @@ public class SchemaBuilderTests
     }
 
     [Test]
+    public void AddTimestampColumn_ThrowsException_WhenPrecisionIsNegative()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => new SchemaBuilder()
+            .AddTimestampColumn(precision: -1));
+    }
+
+    [Test]
+    public void AddTimestampColumn_ThrowsException_WhenPrecisionExceedsNine()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => new SchemaBuilder()
+            .AddTimestampColumn(precision: 10));
+    }
+
+    [Test]
     public void AddLevelColumn_AsString_UsesLowCardinalityString()
     {
         var schema = new SchemaBuilder()

@@ -48,6 +48,11 @@ public sealed class SchemaBuilder
     /// <param name="useUtc">If true (default), stores <c>DateTimeOffset.UtcDateTime</c>; otherwise local time.</param>
     public SchemaBuilder AddTimestampColumn(string name = "timestamp", int precision = 3, bool useUtc = true)
     {
+        if (precision < 0)
+            throw new ArgumentOutOfRangeException(nameof(precision), "Precision must be greater than or equal to zero.");
+        if (precision > 9)
+            throw new ArgumentOutOfRangeException(nameof(precision), "Precision must be smaller than or equal to 9.");
+
         _columns.Add(new TimestampColumnWriter(name, $"DateTime64({precision})", useUtc));
         return this;
     }
