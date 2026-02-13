@@ -18,7 +18,7 @@ public class ClickHouseSinkIntegrationTests
         => new()
         {
             ConnectionString = ConnectionString,
-            Schema = DefaultSchema.Create(tableName),
+            Schema = DefaultSchema.Create(tableName).Build(),
             TableCreation = new TableCreationOptions { Mode = mode },
         };
 
@@ -70,7 +70,7 @@ public class ClickHouseSinkIntegrationTests
         var options = new ClickHouseSinkOptions
         {
             ConnectionString = ConnectionString,
-            Schema = DefaultSchema.Create(table),
+            Schema = DefaultSchema.Create(table).Build(),
             TableCreation = new TableCreationOptions
             {
                 Mode = TableCreationMode.None,
@@ -223,7 +223,7 @@ public class ClickHouseSinkIntegrationTests
         var options = new ClickHouseSinkOptions
         {
             ConnectionString = ConnectionString,
-            Schema = DefaultSchema.Create(table),
+            Schema = DefaultSchema.Create(table).Build(),
             OnBatchWritten = (count, duration) =>
             {
                 capturedCount = count;
@@ -526,5 +526,221 @@ public class ClickHouseSinkIntegrationTests
         Assert.That(rows[1].GetProperty("RequestId").GetString(), Is.EqualTo("bbb-222"));
         Assert.That(rows[1].GetProperty("StatusCode").GetInt32(), Is.EqualTo(404));
         Assert.That(rows[2].GetProperty("ErrorDetail").GetString(), Is.EqualTo("Internal server error"));
+    }
+
+    // ── SchemaManager: DropAndRecreate ────────────────────────────
+
+    [Test]
+    public async Task EmitBatchAsync_WithDropAndRecreate_DropsExistingDataAndRecreatesTable()
+    {
+        var table = UniqueTable("drop_recreate");
+        var schema = DefaultSchema.Create(table).Build();
+
+        // Pre-create the table and insert a sentinel row
+        using (var preClient = new ClickHouseClient(ConnectionString))
+        {
+            var createSql = SqlGenerator.GenerateCreateTable(schema);
+            await preClient.ExecuteNonQueryAsync(createSql);
+
+            var exists = await preClient.ExecuteScalarAsync($"EXISTS {SqlGenerator.EscapeTableName(table)}");
+            Assert.That(exists is (byte)1, Is.True);
+        }
+
+        // Now use DropAndRecreate mode
+        var options = new ClickHouseSinkOptions
+        {
+            ConnectionString = ConnectionString,
+            Schema = schema,
+            TableCreation = new TableCreationOptions { Mode = TableCreationMode.DropAndRecreate },
+        };
+
+        using var sink = new ClickHouseSink(options);
+        await sink.EmitBatchAsync(new[] { new LogEventBuilder().WithMessage("After recreate").Build() });
+
+        using var client = new ClickHouseClient(ConnectionString);
+        var count = await client.ExecuteScalarAsync($"SELECT count() FROM {SqlGenerator.EscapeTableName(table)}");
+        Assert.That(Convert.ToInt64(count), Is.EqualTo(1));
+
+        var reader = await client.ExecuteReaderAsync(
+            $"SELECT message FROM {SqlGenerator.EscapeTableName(table)} LIMIT 1");
+        Assert.That(reader.Read(), Is.True);
+        Assert.That(reader.GetString(0), Is.EqualTo("After recreate"));
+    }
+
+    // ── SchemaManager: ValidateOnStartup ──────────────────────────
+
+    [Test]
+    public async Task EmitBatchAsync_WithModeNone_ValidateOnStartup_SucceedsWhenTablePreExists()
+    {
+        var table = UniqueTable("validate_ok");
+        var schema = DefaultSchema.Create(table).Build();
+
+        // Pre-create the table
+        using (var preClient = new ClickHouseClient(ConnectionString))
+        {
+            var createSql = SqlGenerator.GenerateCreateTable(schema);
+            await preClient.ExecuteNonQueryAsync(createSql);
+        }
+
+        var options = new ClickHouseSinkOptions
+        {
+            ConnectionString = ConnectionString,
+            Schema = schema,
+            TableCreation = new TableCreationOptions
+            {
+                Mode = TableCreationMode.None,
+                ValidateOnStartup = true,
+            },
+        };
+
+        using var sink = new ClickHouseSink(options);
+        await sink.EmitBatchAsync(new[] { new LogEventBuilder().WithMessage("Validated").Build() });
+
+        using var client = new ClickHouseClient(ConnectionString);
+        var count = await client.ExecuteScalarAsync($"SELECT count() FROM {SqlGenerator.EscapeTableName(table)}");
+        Assert.That(Convert.ToInt64(count), Is.EqualTo(1));
+    }
+
+    [Test]
+    public void EmitBatchAsync_WithModeNone_ValidateOnStartup_ThrowsWhenTableMissing()
+    {
+        var table = UniqueTable("validate_fail");
+
+        var options = new ClickHouseSinkOptions
+        {
+            ConnectionString = ConnectionString,
+            Schema = DefaultSchema.Create(table).Build(),
+            TableCreation = new TableCreationOptions
+            {
+                Mode = TableCreationMode.None,
+                ValidateOnStartup = true,
+            },
+        };
+
+        using var sink = new ClickHouseSink(options);
+
+        var ex = Assert.ThrowsAsync<InvalidOperationException>(
+            () => sink.EmitBatchAsync(new[] { new LogEventBuilder().WithMessage("Test").Build() }));
+
+        Assert.That(ex!.Message, Does.Contain("does not exist"));
+    }
+
+    // ── DefaultSchema presets ─────────────────────────────────────
+
+    [Test]
+    public async Task EmitBatchAsync_WithMinimalSchema_WritesCorrectly()
+    {
+        var table = UniqueTable("minimal");
+        var options = new ClickHouseSinkOptions
+        {
+            ConnectionString = ConnectionString,
+            Schema = DefaultSchema.CreateMinimal(table).Build(),
+        };
+
+        using var sink = new ClickHouseSink(options);
+
+        var logEvent = new LogEventBuilder()
+            .WithLevel(LogEventLevel.Warning)
+            .WithMessage("Minimal schema test")
+            .Build();
+
+        await sink.EmitBatchAsync(new[] { logEvent });
+
+        using var client = new ClickHouseClient(ConnectionString);
+        var reader = await client.ExecuteReaderAsync(
+            $"SELECT timestamp, level, message FROM {SqlGenerator.EscapeTableName(table)} LIMIT 1");
+
+        Assert.That(reader.Read(), Is.True);
+        Assert.That(reader.GetDateTime(0), Is.Not.EqualTo(default(DateTime)));
+        // Level stored as UInt8 (Warning = 3)
+        Assert.That(Convert.ToByte(reader.GetValue(1)), Is.EqualTo((byte)LogEventLevel.Warning));
+        Assert.That(reader.GetString(2), Is.EqualTo("Minimal schema test"));
+    }
+
+    [Test]
+    public async Task EmitBatchAsync_WithComprehensiveSchema_WritesAllColumns()
+    {
+        var table = UniqueTable("comprehensive");
+        var options = new ClickHouseSinkOptions
+        {
+            ConnectionString = ConnectionString,
+            Schema = DefaultSchema.CreateComprehensive(table).Build(),
+        };
+
+        using var sink = new ClickHouseSink(options);
+
+        var logEvent = new LogEventBuilder()
+            .WithLevel(LogEventLevel.Error)
+            .WithMessage("Comprehensive {Action}")
+            .WithProperty("Action", "test")
+            .WithException(new InvalidOperationException("boom"))
+            .Build();
+
+        await sink.EmitBatchAsync(new[] { logEvent });
+
+        using var client = new ClickHouseClient(ConnectionString);
+        var reader = await client.ExecuteReaderAsync(
+            $"SELECT timestamp, level, message, message_template, exception, properties, log_event FROM {SqlGenerator.EscapeTableName(table)} LIMIT 1");
+
+        Assert.That(reader.Read(), Is.True);
+        Assert.That(reader.GetDateTime(0), Is.Not.EqualTo(default(DateTime)));
+        Assert.That(reader.GetString(1), Is.EqualTo("Error"));
+        Assert.That(reader.GetString(2), Does.Contain("Comprehensive"));
+        Assert.That(reader.GetString(3), Is.EqualTo("Comprehensive {Action}"));
+        Assert.That(reader.GetString(4), Does.Contain("boom"));
+        Assert.That(reader.GetString(5), Does.Contain("Action"));
+
+        // log_event column — full event as JSON
+        var logEventJson = reader.GetString(6);
+        var parsed = System.Text.Json.JsonDocument.Parse(logEventJson);
+        Assert.That(parsed.RootElement.TryGetProperty("Timestamp", out _), Is.True);
+        Assert.That(parsed.RootElement.TryGetProperty("Level", out _), Is.True);
+    }
+
+    // ── Column writer error isolation ─────────────────────────────
+
+    /// <summary>
+    /// A column writer that always throws, used to test per-column error isolation.
+    /// </summary>
+    private class ThrowingColumnWriter : ColumnWriterBase
+    {
+        public ThrowingColumnWriter()
+            : base("bad_column", "Nullable(String)")
+        {
+        }
+
+        public override object? GetValue(LogEvent logEvent, IFormatProvider? formatProvider = null)
+        {
+            throw new InvalidOperationException("Intentional test failure");
+        }
+    }
+
+    [Test]
+    public async Task EmitBatchAsync_WithThrowingColumnWriter_StillWritesRowWithDefaults()
+    {
+        var table = UniqueTable("throw_col");
+        var schema = new SchemaBuilder()
+            .WithTableName(table)
+            .AddTimestampColumn()
+            .AddMessageColumn()
+            .AddColumn(new ThrowingColumnWriter())
+            .Build();
+
+        var options = new ClickHouseSinkOptions
+        {
+            ConnectionString = ConnectionString,
+            Schema = schema,
+        };
+
+        using var sink = new ClickHouseSink(options);
+        await sink.EmitBatchAsync(new[] { new LogEventBuilder().WithMessage("Should still be written").Build() });
+
+        using var client = new ClickHouseClient(ConnectionString);
+        var reader = await client.ExecuteReaderAsync(
+            $"SELECT message, bad_column FROM {SqlGenerator.EscapeTableName(table)} LIMIT 1");
+
+        Assert.That(reader.Read(), Is.True);
+        Assert.That(reader.GetString(0), Is.EqualTo("Should still be written"));
+        Assert.That(reader.IsDBNull(1), Is.True);
     }
 }

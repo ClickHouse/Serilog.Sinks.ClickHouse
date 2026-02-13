@@ -4,7 +4,17 @@ namespace Serilog.Sinks.ClickHouse.Schema;
 
 /// <summary>
 /// Provides default schema configurations for common use cases.
+/// Each method returns a <see cref="SchemaBuilder"/> so presets can be customized
+/// before calling <see cref="SchemaBuilder.Build"/>.
 /// </summary>
+/// <example>
+/// Start from the default preset and add a custom property column:
+/// <code>
+/// var schema = DefaultSchema.Create("app_logs")
+///     .AddPropertyColumn("UserId", "Nullable(Int64)")
+///     .Build();
+/// </code>
+/// </example>
 public static class DefaultSchema
 {
     /// <summary>
@@ -23,24 +33,22 @@ public static class DefaultSchema
     /// </summary>
     /// <param name="tableName">The table name.</param>
     /// <param name="database">Optional database name.</param>
-    /// <returns>A complete TableSchema ready for use.</returns>
-    public static TableSchema Create(string tableName, string? database = null)
+    /// <returns>A <see cref="SchemaBuilder"/> that can be customized further or built directly.</returns>
+    public static SchemaBuilder Create(string tableName, string? database = null)
     {
-        return new TableSchema
-        {
-            Database = database,
-            TableName = tableName,
-            Columns = new ColumnWriterBase[]
-            {
-                new TimestampColumnWriter("timestamp", "DateTime64(3)", useUtc: true),
-                new LevelColumnWriter("level"),
-                new RenderedMessageColumnWriter("message"),
-                new MessageTemplateColumnWriter("message_template"),
-                new ExceptionColumnWriter("exception"),
-                new PropertiesColumnWriter("properties"),
-            },
-            Engine = new DefaultEngine(),
-        };
+        var builder = new SchemaBuilder()
+            .WithTableName(tableName)
+            .AddTimestampColumn("timestamp", precision: 3, useUtc: true)
+            .AddLevelColumn("level")
+            .AddMessageColumn("message")
+            .AddMessageTemplateColumn("message_template")
+            .AddExceptionColumn("exception")
+            .AddPropertiesColumn("properties");
+
+        if (database is not null)
+            builder.WithDatabase(database);
+
+        return builder;
     }
 
     /// <summary>
@@ -53,20 +61,21 @@ public static class DefaultSchema
     ///
     /// Use this for high-volume logging where storage is a concern.
     /// </summary>
-    public static TableSchema CreateMinimal(string tableName, string? database = null)
+    /// <param name="tableName">The table name.</param>
+    /// <param name="database">Optional database name.</param>
+    /// <returns>A <see cref="SchemaBuilder"/> that can be customized further or built directly.</returns>
+    public static SchemaBuilder CreateMinimal(string tableName, string? database = null)
     {
-        return new TableSchema
-        {
-            Database = database,
-            TableName = tableName,
-            Columns = new ColumnWriterBase[]
-            {
-                new TimestampColumnWriter("timestamp", "DateTime64(3)", useUtc: true),
-                new LevelColumnWriter("level", asString: false),
-                new RenderedMessageColumnWriter("message"),
-            },
-            Engine = new DefaultEngine(),
-        };
+        var builder = new SchemaBuilder()
+            .WithTableName(tableName)
+            .AddTimestampColumn("timestamp", precision: 3, useUtc: true)
+            .AddLevelColumn("level", asString: false)
+            .AddMessageColumn("message");
+
+        if (database is not null)
+            builder.WithDatabase(database);
+
+        return builder;
     }
 
     /// <summary>
@@ -80,23 +89,24 @@ public static class DefaultSchema
     ///
     /// Use this when you need full event fidelity for debugging or compliance.
     /// </summary>
-    public static TableSchema CreateComprehensive(string tableName, string? database = null)
+    /// <param name="tableName">The table name.</param>
+    /// <param name="database">Optional database name.</param>
+    /// <returns>A <see cref="SchemaBuilder"/> that can be customized further or built directly.</returns>
+    public static SchemaBuilder CreateComprehensive(string tableName, string? database = null)
     {
-        return new TableSchema
-        {
-            Database = database,
-            TableName = tableName,
-            Columns = new ColumnWriterBase[]
-            {
-                new TimestampColumnWriter("timestamp", "DateTime64(3)", useUtc: true),
-                new LevelColumnWriter("level", asString: true),
-                new RenderedMessageColumnWriter("message"),
-                new MessageTemplateColumnWriter("message_template"),
-                new ExceptionColumnWriter("exception"),
-                new PropertiesColumnWriter("properties"),
-                new LogEventColumnWriter("log_event"),
-            },
-            Engine = new DefaultEngine(),
-        };
+        var builder = new SchemaBuilder()
+            .WithTableName(tableName)
+            .AddTimestampColumn("timestamp", precision: 3, useUtc: true)
+            .AddLevelColumn("level", asString: true)
+            .AddMessageColumn("message")
+            .AddMessageTemplateColumn("message_template")
+            .AddExceptionColumn("exception")
+            .AddPropertiesColumn("properties")
+            .AddLogEventColumn("log_event");
+
+        if (database is not null)
+            builder.WithDatabase(database);
+
+        return builder;
     }
 }

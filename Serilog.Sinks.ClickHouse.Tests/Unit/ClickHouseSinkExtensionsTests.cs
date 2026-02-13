@@ -91,7 +91,7 @@ public class ClickHouseSinkExtensionsTests
     {
         var options = new ClickHouseSinkOptions
         {
-            Schema = DefaultSchema.Create("test_logs"),
+            Schema = DefaultSchema.Create("test_logs").Build(),
             TableCreation = new TableCreationOptions
             {
                 Mode = TableCreationMode.None,
@@ -112,7 +112,7 @@ public class ClickHouseSinkExtensionsTests
         var options = new ClickHouseSinkOptions
         {
             ConnectionString = "",
-            Schema = DefaultSchema.Create("test_logs"),
+            Schema = DefaultSchema.Create("test_logs").Build(),
             TableCreation = new TableCreationOptions
             {
                 Mode = TableCreationMode.None,
@@ -134,7 +134,7 @@ public class ClickHouseSinkExtensionsTests
         var options = new ClickHouseSinkOptions
         {
             ConnectionString = "Host=myhost;Port=9000",
-            Schema = DefaultSchema.Create("test_logs"),
+            Schema = DefaultSchema.Create("test_logs").Build(),
             TableCreation = new TableCreationOptions
             {
                 Mode = TableCreationMode.None,
@@ -163,7 +163,7 @@ public class ClickHouseSinkExtensionsTests
         var options = new ClickHouseSinkOptions
         {
             ConnectionString = "Host=localhost",
-            Schema = DefaultSchema.Create("test_logs"),
+            Schema = DefaultSchema.Create("test_logs").Build(),
         };
 
         Assert.Throws<ArgumentNullException>(() =>
@@ -199,7 +199,7 @@ public class ClickHouseSinkExtensionsTests
         var options = new ClickHouseSinkOptions
         {
             ConnectionString = "Host=localhost;Port=9000",
-            Schema = DefaultSchema.Create("test_logs"),
+            Schema = DefaultSchema.Create("test_logs").Build(),
         };
 
         Assert.Throws<ArgumentNullException>(() =>
@@ -215,7 +215,7 @@ public class ClickHouseSinkExtensionsTests
         var options = new ClickHouseSinkOptions
         {
             ConnectionString = "Host=localhost",
-            Schema = DefaultSchema.Create("test_logs"),
+            Schema = DefaultSchema.Create("test_logs").Build(),
         };
 
         Assert.Throws<ArgumentNullException>(() =>

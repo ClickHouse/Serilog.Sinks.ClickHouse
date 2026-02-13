@@ -1,4 +1,3 @@
-
 # About
 
 A [Serilog](https://serilog.net/) sink that writes structured log events to [ClickHouse](https://clickhouse.com/). Events are batched for efficient bulk inserts. Optionally, the library handles table creation automatically.
@@ -36,17 +35,24 @@ All enriched properties are captured in the `properties` column and can be queri
 SELECT * FROM app_logs WHERE properties.UserId = 123
 ```
 
-## Batching
-
-The sink uses Serilog's `BatchingOptions` to control buffer size and flush events. You can tune the defaults:
+### Preset Schemas
 
 ```csharp
-.WriteTo.ClickHouse(
-    connectionString: "Host=localhost;Port=9000;Database=logs",
-    tableName: "app_logs",
-    batchSizeLimit: 500,           // Max events per batch (default: 100)
-    flushInterval: TimeSpan.FromSeconds(10),  // Time between flushes (default: 5s)
-    queueLimit: 100_000)           // Max events in queue (default: 100,000)
+// Default — the 6-column schema shown above
+var schema = DefaultSchema.Create("app_logs").Build();
+
+// Minimal — just timestamp, level (numeric), and message
+var schema = DefaultSchema.CreateMinimal("app_logs").Build();
+
+// Comprehensive — default + full log event JSON
+var schema = DefaultSchema.CreateComprehensive("app_logs").Build();
+
+// Start from a preset and add custom columns
+// Each preset returns a SchemaBuilder, which can be furthre customized before calling .Build()
+var schema = DefaultSchema.Create("app_logs")
+    .AddPropertyColumn("UserId", "Nullable(Int64)")
+    .AddPropertyColumn("RequestPath", "Nullable(String)")
+    .Build();
 ```
 
 ## Custom Schema
@@ -84,19 +90,6 @@ Use the schema builder to control which columns are created, their names, types,
 | `AddLogEventColumn(name)` | Entire log event serialized as JSON. |
 | `AddColumn(columnWriter)` | Any custom `ColumnWriterBase` implementation. |
 
-### Preset Schemas
-
-```csharp
-// Default — the 6-column schema shown above
-DefaultSchema.Create("app_logs");
-
-// Minimal — just timestamp, level (numeric), and message
-DefaultSchema.CreateMinimal("app_logs");
-
-// Comprehensive — default + full log event JSON
-DefaultSchema.CreateComprehensive("app_logs");
-```
-
 ## Extracting Individual Properties
 
 Use `SinglePropertyColumnWriter` to pull specific enriched properties into dedicated typed columns. This is useful when you want to query or index a known property efficiently instead of parsing JSON.
@@ -131,6 +124,19 @@ If a log event doesn't contain the named property, the sink sends a ClickHouse c
 | `CreateIfNotExists` | Runs `CREATE TABLE IF NOT EXISTS` on first batch (default, safe, idempotent) |
 | `None` | Assumes the table already exists. Validates existence on startup by default. |
 | `DropAndRecreate` | Drops and recreates the table. **Destroys data** — dev/testing only. |
+
+## Batching
+
+The sink uses Serilog's `BatchingOptions` to control buffer size and flush events. You can tune the defaults:
+
+```csharp
+.WriteTo.ClickHouse(
+    connectionString: "Host=localhost;Port=9000;Database=logs",
+    tableName: "app_logs",
+    batchSizeLimit: 500,           // Max events per batch (default: 100)
+    flushInterval: TimeSpan.FromSeconds(10),  // Time between flushes (default: 5s)
+    queueLimit: 100_000)           // Max events in queue (default: 100,000)
+```
 
 ## Callbacks
 

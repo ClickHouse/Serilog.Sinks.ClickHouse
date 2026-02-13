@@ -25,7 +25,7 @@ public class ClickHouseSinkTests
         _defaultOptions = new ClickHouseSinkOptions
         {
             ConnectionString = "Host=localhost;Port=9000;",
-            Schema = DefaultSchema.Create("test_logs"),
+            Schema = DefaultSchema.Create("test_logs").Build(),
             TableCreation = new TableCreationOptions
             {
                 Mode = TableCreationMode.None,
@@ -58,7 +58,7 @@ public class ClickHouseSinkTests
         var invalidOptions = new ClickHouseSinkOptions
         {
             ConnectionString = "",
-            Schema = DefaultSchema.Create("test"),
+            Schema = DefaultSchema.Create("test").Build(),
         };
 
         Assert.Throws<InvalidOperationException>(() => new ClickHouseSink(invalidOptions, _mockClient));
@@ -115,7 +115,7 @@ public class ClickHouseSinkTests
         var options = new ClickHouseSinkOptions
         {
             ConnectionString = "Host=localhost;Port=9000;",
-            Schema = DefaultSchema.Create("test_logs"),
+            Schema = DefaultSchema.Create("test_logs").Build(),
             TableCreation = new TableCreationOptions
             {
                 Mode = TableCreationMode.None,

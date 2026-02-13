@@ -37,7 +37,7 @@ public static class ClickHouseSinkExtensions
         => new()
         {
             ConnectionString = connectionString,
-            Schema = DefaultSchema.Create(tableName, database),
+            Schema = DefaultSchema.Create(tableName, database).Build(),
             TableCreation = new TableCreationOptions { Mode = tableCreation },
             MinimumLevel = minimumLevel,
             FormatProvider = formatProvider,

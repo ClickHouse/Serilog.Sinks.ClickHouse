@@ -81,7 +81,7 @@ public class ExtensionOverloadsIntegrationTests
 
         var options = new ClickHouseSinkOptions
         {
-            Schema = DefaultSchema.Create(table),
+            Schema = DefaultSchema.Create(table).Build(),
         };
 
         using var logger = new LoggerConfiguration()
@@ -147,7 +147,7 @@ public class ExtensionOverloadsIntegrationTests
 
         var options = new ClickHouseSinkOptions
         {
-            Schema = DefaultSchema.Create(table),
+            Schema = DefaultSchema.Create(table).Build(),
         };
 
         using var logger = new LoggerConfiguration()
@@ -226,5 +226,58 @@ public class ExtensionOverloadsIntegrationTests
         await logger.DisposeAsync();
 
         Assert.That(await CountRows(table), Is.EqualTo(1));
+    }
+
+    // ── Action<SchemaBuilder> overload ────────────────────────────
+
+    [Test]
+    public async Task SchemaBuilderAction_Overload_WritesEvents()
+    {
+        var table = UniqueTable("schema_action");
+
+        using var logger = new LoggerConfiguration()
+            .WriteTo.ClickHouse(
+                connectionString: ConnectionString,
+                configureSchema: schema => schema
+                    .WithTableName(table)
+                    .AddTimestampColumn()
+                    .AddLevelColumn()
+                    .AddMessageColumn(),
+                batchSizeLimit: 10)
+            .CreateLogger();
+
+        logger.Information("Hello from {Source}", "SchemaBuilder action overload");
+        await logger.DisposeAsync();
+
+        Assert.That(await CountRows(table), Is.GreaterThanOrEqualTo(1));
+    }
+
+    [Test]
+    public async Task SchemaBuilderAction_Overload_WithCustomColumns_WritesCorrectData()
+    {
+        var table = UniqueTable("schema_action_custom");
+
+        using var logger = new LoggerConfiguration()
+            .WriteTo.ClickHouse(
+                connectionString: ConnectionString,
+                configureSchema: schema => schema
+                    .WithTableName(table)
+                    .AddTimestampColumn("event_time", precision: 6)
+                    .AddLevelColumn("severity", asString: true)
+                    .AddMessageColumn("log_message")
+                    .AddExceptionColumn(),
+                batchSizeLimit: 10)
+            .CreateLogger();
+
+        logger.Warning("Custom schema builder {Detail}", "works");
+        await logger.DisposeAsync();
+
+        using var client = new ClickHouseClient(ConnectionString);
+        var reader = await client.ExecuteReaderAsync(
+            $"SELECT severity, log_message FROM {SqlGenerator.EscapeTableName(table)} LIMIT 1");
+
+        Assert.That(reader.Read(), Is.True);
+        Assert.That(reader.GetString(0), Is.EqualTo("Warning"));
+        Assert.That(reader.GetString(1), Does.Contain("Custom schema builder"));
     }
 }
