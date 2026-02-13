@@ -104,8 +104,7 @@ Use the schema builder to control which columns are created, their names, types,
         .AddPropertiesColumn()
         .AddPropertyColumn("UserId", "Nullable(Int64)", writeMethod: PropertyWriteMethod.Raw)
         .AddPropertyColumn("RequestPath", "Nullable(String)")
-        .WithEngine(new CustomEngine(
-            "ENGINE = MergeTree() ORDER BY (event_time) PARTITION BY toYYYYMM(event_time)")))
+        .WithEngine("ENGINE = MergeTree() ORDER BY (event_time) PARTITION BY toYYYYMM(event_time)"))
 ```
 
 ### Schema Builder Methods
