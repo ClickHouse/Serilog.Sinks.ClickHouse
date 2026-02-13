@@ -159,6 +159,18 @@ public sealed class SchemaBuilder
         _engine = engine ?? throw new ArgumentNullException(nameof(engine));
         return this;
     }
+    
+    /// <summary>
+    /// Sets the table engine directly using a SQL expression.
+    /// </summary>
+    public SchemaBuilder WithEngine(string engineExpression)
+    {
+        if (string.IsNullOrWhiteSpace(engineExpression))
+            throw new ArgumentNullException(nameof(engineExpression));
+
+        _engine = new CustomEngine(engineExpression);
+        return this;
+    }
 
     /// <summary>
     /// Sets a comment for the table.
