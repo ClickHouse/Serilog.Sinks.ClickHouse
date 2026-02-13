@@ -226,12 +226,18 @@ public static class ClickHouseSinkExtensions
         Action<int, TimeSpan>? onBatchWritten = null,
         Action<Exception, int>? onBatchFailed = null)
     {
+        ArgumentNullException.ThrowIfNull(loggerConfiguration);
         ArgumentNullException.ThrowIfNull(settings);
 
         var client = new ClickHouseClient(settings);
         var options = CreateOptions(tableName, database, tableCreation, minimumLevel, formatProvider, onBatchWritten, onBatchFailed);
+        options.Validate();
 
-        return loggerConfiguration.ClickHouse(options, client, CreateBatchingOptions(batchSizeLimit, flushInterval, queueLimit));
+        // The sink owns the client since we created it here.
+        var sink = new ClickHouseSink(options, client, ownsClient: true);
+        var batchingOptions = CreateBatchingOptions(batchSizeLimit, flushInterval, queueLimit);
+
+        return loggerConfiguration.Sink(sink, batchingOptions, options.MinimumLevel);
     }
 
     /// <summary>

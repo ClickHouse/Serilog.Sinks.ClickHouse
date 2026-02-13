@@ -81,20 +81,37 @@ public class ClickHouseSinkTests
     }
 
     [Test]
-    public void Dispose_DisposesClient()
+    public void Dispose_DoesNotDisposeExternalClient()
     {
         var sink = new ClickHouseSink(_defaultOptions, _mockClient);
+        sink.Dispose();
+        _mockClient.DidNotReceive().Dispose();
+    }
+
+    [Test]
+    public void Dispose_DisposesOwnedClient()
+    {
+        var sink = new ClickHouseSink(_defaultOptions, _mockClient, ownsClient: true);
         sink.Dispose();
         _mockClient.Received(1).Dispose();
     }
 
     [Test]
-    public void Dispose_CanBeCalledMultipleTimes()
+    public void Dispose_CanBeCalledMultipleTimes_OwnedClient()
+    {
+        var sink = new ClickHouseSink(_defaultOptions, _mockClient, ownsClient: true);
+        sink.Dispose();
+        sink.Dispose();
+        _mockClient.Received(1).Dispose();
+    }
+
+    [Test]
+    public void Dispose_CanBeCalledMultipleTimes_ExternalClient()
     {
         var sink = new ClickHouseSink(_defaultOptions, _mockClient);
         sink.Dispose();
         sink.Dispose();
-        _mockClient.Received(1).Dispose();
+        _mockClient.DidNotReceive().Dispose();
     }
 
     [Test]

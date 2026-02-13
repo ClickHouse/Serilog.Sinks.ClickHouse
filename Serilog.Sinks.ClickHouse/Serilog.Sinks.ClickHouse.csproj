@@ -25,6 +25,10 @@
     <AnalysisLevel>latest</AnalysisLevel>
   </PropertyGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="Serilog.Sinks.ClickHouse.Tests" />
+  </ItemGroup>
+
   <Target Name="SetPackageReleaseNotes" BeforeTargets="GenerateNuspec">
     <PropertyGroup>
       <PackageReleaseNotes>$([System.IO.File]::ReadAllText("$(MSBuildProjectDirectory)/../RELEASENOTES.md"))</PackageReleaseNotes>

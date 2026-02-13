@@ -20,6 +20,7 @@ public sealed class ClickHouseSink : IBatchedLogEventSink, IDisposable
 {
     private readonly ClickHouseSinkOptions _options;
     private readonly IClickHouseClient _client;
+    private readonly bool _ownsClient;
     private readonly SchemaManager _schemaManager;
     private readonly IFormatProvider? _formatProvider;
     private readonly InsertOptions _insertOptions = new() { Format = RowBinaryFormat.RowBinaryWithDefaults };
@@ -28,39 +29,55 @@ public sealed class ClickHouseSink : IBatchedLogEventSink, IDisposable
 
     /// <summary>
     /// Creates a new ClickHouse sink with the specified options.
+    /// The sink creates and owns the <see cref="IClickHouseClient"/> internally.
     /// </summary>
     public ClickHouseSink(ClickHouseSinkOptions options)
-        : this(options, new ClickHouseClient(options.ConnectionString))
+        : this(options, new ClickHouseClient(options.ConnectionString), ownsClient: true)
     {
     }
 
     /// <summary>
-    /// Creates a new ClickHouse sink with a custom client (for testing).
+    /// Creates a new ClickHouse sink with an externally managed client.
+    /// The sink does not dispose the client; the caller retains ownership.
     /// </summary>
     public ClickHouseSink(ClickHouseSinkOptions options, IClickHouseClient client)
+        : this(options, client, ownsClient: false)
     {
-        _options = options ?? throw new ArgumentNullException(nameof(options));
-        _options.Validate();
-
-        _client = client ?? throw new ArgumentNullException(nameof(client));
-        _schemaManager = new SchemaManager(_client);
-        _formatProvider = options.FormatProvider;
     }
 
 #if NET7_0_OR_GREATER
     /// <summary>
     /// Creates a new ClickHouse sink with a data source.
+    /// The sink obtains and owns the <see cref="IClickHouseClient"/> from the data source.
     /// </summary>
     public ClickHouseSink(ClickHouseSinkOptions options, ClickHouseDataSource dataSource)
+        : this(
+            options,
+            (dataSource ?? throw new ArgumentNullException(nameof(dataSource))).GetClient(),
+            ownsClient: true)
+    {
+    }
+#endif
+
+    /// <summary>
+    /// Creates a new ClickHouse sink with explicit client ownership control.
+    /// </summary>
+    /// <param name="options">The sink options.</param>
+    /// <param name="client">The ClickHouse client.</param>
+    /// <param name="ownsClient">
+    /// When <c>true</c>, the sink disposes the client on <see cref="Dispose"/>.
+    /// When <c>false</c>, the caller is responsible for disposing the client.
+    /// </param>
+    internal ClickHouseSink(ClickHouseSinkOptions options, IClickHouseClient client, bool ownsClient)
     {
         _options = options ?? throw new ArgumentNullException(nameof(options));
         _options.Validate();
 
-        _client = dataSource.GetClient();
+        _client = client ?? throw new ArgumentNullException(nameof(client));
+        _ownsClient = ownsClient;
         _schemaManager = new SchemaManager(_client);
         _formatProvider = options.FormatProvider;
     }
-#endif
 
     /// <summary>
     /// Emits a batch of log events to ClickHouse.
@@ -162,6 +179,8 @@ public sealed class ClickHouseSink : IBatchedLogEventSink, IDisposable
             return;
 
         _disposed = true;
-        _client.Dispose();
+
+        if (_ownsClient)
+            _client.Dispose();
     }
 }
