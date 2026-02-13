@@ -2,11 +2,20 @@
 
 A [Serilog](https://serilog.net/) sink that writes structured log events to [ClickHouse](https://clickhouse.com/). Events are batched for efficient bulk inserts. Optionally, the library handles table creation automatically.
 
+#### Requirements
+
+- ClickHouse 24.1+ (for native JSON column support)
+- .NET 6.0 or later
+
+## Quick Start
+
+Install the package:
+
 ```
 dotnet add package Serilog.Sinks.ClickHouse
 ```
 
-## Quick Start
+Basic configuration:
 
 ```csharp
 Log.Logger = new LoggerConfiguration()
@@ -90,6 +99,17 @@ Use the schema builder to control which columns are created, their names, types,
 | `AddLogEventColumn(name)` | Entire log event serialized as JSON. |
 | `AddColumn(columnWriter)` | Any custom `ColumnWriterBase` implementation. |
 
+### Choosing ORDER BY
+
+ClickHouse query performance depends heavily on `ORDER BY`. For typical log tables:
+
+```csharp
+// Good for time-range queries
+.WithEngine("ENGINE = MergeTree() ORDER BY (timestamp)")
+
+// Better if you often filter by level
+.WithEngine("ENGINE = MergeTree() ORDER BY (level, timestamp)")
+
 ## Extracting Individual Properties
 
 Use `SinglePropertyColumnWriter` to pull specific enriched properties into dedicated typed columns. This is useful when you want to query or index a known property efficiently instead of parsing JSON.
@@ -138,6 +158,8 @@ The sink uses Serilog's `BatchingOptions` to control buffer size and flush event
     queueLimit: 100_000)           // Max events in queue (default: 100,000)
 ```
 
+*Important:** Call `Log.CloseAndFlush()` on application shutdown to ensure buffered events are written. In ASP.NET Core, `UseSerilog()` handles this automatically.
+
 ## Callbacks
 
 Hook into batch lifecycle for metrics or alerting:
@@ -151,3 +173,91 @@ Hook into batch lifecycle for metrics or alerting:
     onBatchFailed: (ex, count) =>
         Console.WriteLine($"Failed to write {count} events: {ex.Message}"))
 ```
+
+Note that retries are handled by Serilog and controlled via `RetryTimeLimit`.
+
+## Full Options
+
+For complete control, pass a `ClickHouseSinkOptions` directly:
+
+```csharp
+var options = new ClickHouseSinkOptions
+{
+    ConnectionString = "Host=localhost;Port=9000;Database=logs",
+    Schema = DefaultSchema.Create("app_logs").Build(),
+    TableCreation = new TableCreationOptions
+    {
+        Mode = TableCreationMode.CreateIfNotExists,
+        ValidateOnStartup = true
+    },
+    MinimumLevel = LogEventLevel.Information,
+    FormatProvider = CultureInfo.InvariantCulture,
+    OnBatchWritten = (count, duration) => { /* metrics */ },
+    OnBatchFailed = (ex, count) => { /* alerting */ }
+};
+
+Log.Logger = new LoggerConfiguration()
+    .WriteTo.ClickHouse(options)
+    .CreateLogger();
+```
+
+## Dependency Injection / ASP.NET
+
+If you already have a `ClickHouseClient` or `ClickHouseDataSource` registered in your DI container, pass it directly instead of a connection string:
+
+### Using `ClickHouseDataSource` (.NET 7+)
+
+```csharp
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddSingleton(_ =>
+    new ClickHouseDataSource("Host=localhost;Port=9000;Database=logs"));
+
+builder.Host.UseSerilog((context, services, loggerConfiguration) =>
+{
+    var dataSource = services.GetRequiredService<ClickHouseDataSource>();
+    loggerConfiguration.WriteTo.ClickHouse(dataSource, tableName: "app_logs");
+});
+```
+
+### Using `ClickHouseClient`
+
+```csharp
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddSingleton<IClickHouseClient>(_ =>
+    new ClickHouseClient("Host=localhost;Port=8443;Protocol=https;Database=logs"));
+
+builder.Host.UseSerilog((context, services, loggerConfiguration) =>
+{
+    var client = services.GetRequiredService<IClickHouseClient>();
+    loggerConfiguration.WriteTo.ClickHouse(client, tableName: "app_logs");
+});
+```
+
+All DI overloads accept the same optional parameters (`database`, `batchSizeLimit`, `flushInterval`, etc.) as the connection-string overload. For full control, pass a `ClickHouseSinkOptions` alongside the client or data source:
+
+```csharp
+loggerConfiguration.WriteTo.ClickHouse(options, client);
+loggerConfiguration.WriteTo.ClickHouse(options, dataSource); // .NET 7+
+```
+
+## Connection String
+
+The sink uses [ClickHouse.Driver](https://github.com/ClickHouse/clickhouse-cs) for the connection. Connection string format:
+
+```
+Host=localhost;Port=9000;Database=logs;User=default;Password=
+```
+
+## Troubleshooting
+
+See the serilog docs for [debugging and diagnostics tips](https://github.com/serilog/serilog/wiki/Debugging-and-Diagnostics).
+
+## Supported Frameworks
+
+net6.0, net8.0, net9.0, net10.0
+
+## License
+
+Apache-2.0
