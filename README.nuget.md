@@ -31,7 +31,7 @@ This creates a table `app_logs` with the following columns:
 
 | Column | Type | Description |
 |--------|------|-------------|
-| `timestamp` | `DateTime64(3)` | Event timestamp (UTC) |
+| `timestamp` | `DateTime64(6)` | Event timestamp (UTC) |
 | `level` | `LowCardinality(String)` | Log level (`Information`, `Warning`, etc.) |
 | `message` | `String` | Rendered message with property values substituted |
 | `message_template` | `String` | Raw Serilog message template |
@@ -87,7 +87,7 @@ Use the schema builder to control which columns are created, their names, types,
 
 | Method | Description |
 |--------|-------------|
-| `AddTimestampColumn(name, precision, useUtc)` | Event timestamp. Default: `DateTime64(3)`, UTC. |
+| `AddTimestampColumn(name, precision, useUtc)` | Event timestamp. Default: `DateTime64(6)`, UTC. |
 | `AddLevelColumn(name, asString)` | Log level as `LowCardinality(String)` or `UInt8`. |
 | `AddMessageColumn(name)` | Rendered message (properties substituted). |
 | `AddMessageTemplateColumn(name)` | Raw message template. |
@@ -152,7 +152,7 @@ The sink uses Serilog's `BatchingOptions` to control buffer size and flush event
 .WriteTo.ClickHouse(
     connectionString: "Host=localhost;Port=9000;Database=logs",
     tableName: "app_logs",
-    batchSizeLimit: 500,           // Max events per batch (default: 100)
+    batchSizeLimit: 10_000,           // Max events per batch (default: 10,000)
     flushInterval: TimeSpan.FromSeconds(10),  // Time between flushes (default: 5s)
     queueLimit: 100_000)           // Max events in queue (default: 100,000)
 ```

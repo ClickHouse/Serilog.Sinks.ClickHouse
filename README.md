@@ -55,7 +55,7 @@ This creates a table `app_logs` with the following columns:
 
 | Column | Type | Description |
 |--------|------|-------------|
-| `timestamp` | `DateTime64(3)` | Event timestamp (UTC) |
+| `timestamp` | `DateTime64(6)` | Event timestamp (UTC) |
 | `level` | `LowCardinality(String)` | Log level (`Information`, `Warning`, etc.) |
 | `message` | `String` | Rendered message with property values substituted |
 | `message_template` | `String` | Raw Serilog message template |
@@ -111,7 +111,7 @@ Use the schema builder to control which columns are created, their names, types,
 
 | Method | Description |
 |--------|-------------|
-| `AddTimestampColumn(name, precision, useUtc)` | Event timestamp. Default: `DateTime64(3)`, UTC. |
+| `AddTimestampColumn(name, precision, useUtc)` | Event timestamp. Default: `DateTime64(6)`, UTC. |
 | `AddLevelColumn(name, asString)` | Log level as `LowCardinality(String)` or `UInt8`. |
 | `AddMessageColumn(name)` | Rendered message (properties substituted). |
 | `AddMessageTemplateColumn(name)` | Raw message template. |
