@@ -4,14 +4,14 @@ namespace Serilog.Sinks.ClickHouse.ColumnWriters;
 
 /// <summary>
 /// Writes the timestamp from the log event.
-/// Default type: DateTime64(3).
+/// Default type: DateTime64(6).
 /// </summary>
 public class TimestampColumnWriter : ColumnWriterBase
 {
     private readonly bool _useUtc;
 
     public TimestampColumnWriter(string columnName = "timestamp", string? columnType = null, bool useUtc = true)
-        : base(columnName, columnType ?? "DateTime64(3)")
+        : base(columnName, columnType ?? "DateTime64(6)")
     {
         _useUtc = useUtc;
     }

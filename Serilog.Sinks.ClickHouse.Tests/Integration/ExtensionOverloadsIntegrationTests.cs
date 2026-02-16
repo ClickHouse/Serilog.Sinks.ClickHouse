@@ -265,7 +265,8 @@ public class ExtensionOverloadsIntegrationTests
                     .AddTimestampColumn("event_time", precision: 6)
                     .AddLevelColumn("severity", asString: true)
                     .AddMessageColumn("log_message")
-                    .AddExceptionColumn(),
+                    .AddExceptionColumn()
+                    .WithEngine("ENGINE = MergeTree\nPARTITION BY toYYYYMM(event_time)\nORDER BY (event_time)"),
                 batchSizeLimit: 10)
             .CreateLogger();
 

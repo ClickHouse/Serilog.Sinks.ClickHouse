@@ -80,7 +80,7 @@ public class SqlGeneratorTests
         var sql = SqlGenerator.GenerateCreateTable(schema);
 
         Assert.That(sql, Does.Contain("CREATE TABLE IF NOT EXISTS logs"));
-        Assert.That(sql, Does.Contain("timestamp DateTime64(3)"));
+        Assert.That(sql, Does.Contain("timestamp DateTime64(6)"));
         Assert.That(sql, Does.Contain("level LowCardinality(String)"));
         Assert.That(sql, Does.Contain("message String"));
     }

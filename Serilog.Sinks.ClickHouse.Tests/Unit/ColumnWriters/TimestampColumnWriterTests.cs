@@ -42,7 +42,7 @@ public class TimestampColumnWriterTests
     {
         var writer = new TimestampColumnWriter();
 
-        Assert.That(writer.ColumnType, Is.EqualTo("DateTime64(3)"));
+        Assert.That(writer.ColumnType, Is.EqualTo("DateTime64(6)"));
         Assert.That(writer.ColumnName, Is.EqualTo("timestamp"));
     }
 

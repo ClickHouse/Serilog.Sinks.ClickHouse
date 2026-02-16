@@ -24,7 +24,7 @@ public abstract class ColumnWriterBase
     public string ColumnName { get; }
 
     /// <summary>
-    /// The ClickHouse data type for this column (e.g. "String", "DateTime64(3)", "Nullable(String)").
+    /// The ClickHouse data type for this column (e.g. "String", "DateTime64(6)", "Nullable(String)").
     /// Null when the user manages the schema externally and table creation is not needed.
     /// </summary>
     public string? ColumnType { get; }

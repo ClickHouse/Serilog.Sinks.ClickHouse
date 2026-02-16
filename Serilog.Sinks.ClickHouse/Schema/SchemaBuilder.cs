@@ -44,9 +44,9 @@ public sealed class SchemaBuilder
     /// Adds a timestamp column. ClickHouse type: <c>DateTime64({precision})</c>.
     /// </summary>
     /// <param name="name">Column name.</param>
-    /// <param name="precision">Sub-second precision (0–9). Default 3 produces <c>DateTime64(3)</c> (milliseconds).</param>
+    /// <param name="precision">Sub-second precision (0–9). Default produces <c>DateTime64(6) (microseconds)</c>.</param>
     /// <param name="useUtc">If true (default), stores <c>DateTimeOffset.UtcDateTime</c>; otherwise local time.</param>
-    public SchemaBuilder AddTimestampColumn(string name = "timestamp", int precision = 3, bool useUtc = true)
+    public SchemaBuilder AddTimestampColumn(string name = "timestamp", int precision = 6, bool useUtc = true)
     {
         if (precision < 0)
             throw new ArgumentOutOfRangeException(nameof(precision), "Precision must be greater than or equal to zero.");

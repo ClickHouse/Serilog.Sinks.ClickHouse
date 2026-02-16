@@ -13,7 +13,7 @@ namespace Serilog.Sinks.ClickHouse.Configuration;
 public static class ClickHouseSinkExtensions
 {
     // Default batching configuration values
-    private const int DefaultBatchSizeLimit = 100;
+    private const int DefaultBatchSizeLimit = 10_000;
     private const int DefaultQueueLimit = 100_000;
     private static readonly TimeSpan DefaultFlushInterval = TimeSpan.FromSeconds(5);
 

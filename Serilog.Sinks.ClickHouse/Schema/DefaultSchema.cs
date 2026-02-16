@@ -21,7 +21,7 @@ public static class DefaultSchema
     /// Creates a sensible default schema suitable for most logging use cases.
     ///
     /// Default columns:
-    /// - timestamp (DateTime64(3)) - Event timestamp in UTC
+    /// - timestamp (DateTime64(6)) - Event timestamp in UTC
     /// - level (LowCardinality(String)) - Log level as string (e.g., "Information")
     /// - message (String) - Rendered message with property values substituted
     /// - message_template (String) - Raw message template
@@ -55,7 +55,7 @@ public static class DefaultSchema
     /// Creates a minimal schema with just the essential columns.
     ///
     /// Columns:
-    /// - timestamp (DateTime64(3))
+    /// - timestamp (DateTime64(6))
     /// - level (UInt8) - Log level as integer
     /// - message (String)
     ///
@@ -82,7 +82,7 @@ public static class DefaultSchema
     /// Creates a comprehensive schema that includes the full log event as JSON.
     ///
     /// Columns:
-    /// - timestamp (DateTime64(3))
+    /// - timestamp (DateTime64(6))
     /// - level (LowCardinality(String))
     /// - message (String)
     /// - log_event (String) - Complete log event as JSON
