@@ -29,6 +29,11 @@ public abstract class ColumnWriterBase
     /// </summary>
     public string? ColumnType { get; }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ColumnWriterBase"/> class.
+    /// </summary>
+    /// <param name="columnName">The name of the column in the ClickHouse table.</param>
+    /// <param name="columnType">The ClickHouse data type, or null if schema is managed externally.</param>
     protected ColumnWriterBase(string columnName, string? columnType)
     {
         ColumnName = columnName ?? throw new ArgumentNullException(nameof(columnName));

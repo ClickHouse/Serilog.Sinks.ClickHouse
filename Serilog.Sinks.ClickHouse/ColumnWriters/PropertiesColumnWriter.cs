@@ -17,11 +17,13 @@ public class PropertiesColumnWriter : ColumnWriterBase
 {
     private static readonly JsonValueFormatter ValueFormatter = new();
 
+    /// <inheritdoc />
     public PropertiesColumnWriter(string columnName = "properties", string? columnType = null)
         : base(columnName, columnType ?? "JSON")
     {
     }
 
+    /// <inheritdoc />
     public override object? GetValue(LogEvent logEvent, IFormatProvider? formatProvider = null)
     {
         if (logEvent.Properties.Count == 0)

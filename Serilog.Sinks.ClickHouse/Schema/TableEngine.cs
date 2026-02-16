@@ -11,8 +11,15 @@ public abstract record TableEngine
     public abstract string ToSql();
 }
 
+/// <summary>
+/// A table engine defined by a custom SQL engine clause.
+/// </summary>
 public record CustomEngine : TableEngine
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="CustomEngine"/> class.
+    /// </summary>
+    /// <param name="engineDefinition">The raw SQL engine definition.</param>
     public CustomEngine(string engineDefinition)
     {
         EngineDefinition = engineDefinition;
@@ -20,6 +27,7 @@ public record CustomEngine : TableEngine
 
     private string EngineDefinition { get; }
 
+    /// <inheritdoc />
     public override string ToSql() => EngineDefinition;
 }
 
@@ -28,6 +36,7 @@ public record CustomEngine : TableEngine
 /// </summary>
 public record DefaultEngine : TableEngine
 {
+    /// <inheritdoc />
     public override string ToSql() =>
         """
         ENGINE = MergeTree

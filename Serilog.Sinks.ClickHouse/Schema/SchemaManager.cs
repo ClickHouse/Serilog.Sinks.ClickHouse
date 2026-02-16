@@ -48,6 +48,10 @@ public sealed class SchemaManager
 {
     private readonly IClickHouseClient _client;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="SchemaManager"/> class.
+    /// </summary>
+    /// <param name="client">The ClickHouse client used for schema operations.</param>
     public SchemaManager(IClickHouseClient client)
     {
         _client = client ?? throw new ArgumentNullException(nameof(client));

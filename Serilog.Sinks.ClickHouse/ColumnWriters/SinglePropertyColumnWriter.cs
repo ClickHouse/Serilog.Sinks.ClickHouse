@@ -49,6 +49,7 @@ public class SinglePropertyColumnWriter : ColumnWriterBase
     /// </summary>
     public string? Format { get; }
 
+    /// <inheritdoc />
     public SinglePropertyColumnWriter(
         string propertyName,
         string? columnName = null,
@@ -62,6 +63,7 @@ public class SinglePropertyColumnWriter : ColumnWriterBase
         Format = format;
     }
 
+    /// <inheritdoc />
     public override object? GetValue(LogEvent logEvent, IFormatProvider? formatProvider = null)
     {
         if (!logEvent.Properties.TryGetValue(PropertyName, out var propertyValue))

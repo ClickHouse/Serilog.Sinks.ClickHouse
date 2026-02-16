@@ -10,12 +10,14 @@ public class TimestampColumnWriter : ColumnWriterBase
 {
     private readonly bool _useUtc;
 
+    /// <inheritdoc />
     public TimestampColumnWriter(string columnName = "timestamp", string? columnType = null, bool useUtc = true)
         : base(columnName, columnType ?? "DateTime64(6)")
     {
         _useUtc = useUtc;
     }
 
+    /// <inheritdoc />
     public override object? GetValue(LogEvent logEvent, IFormatProvider? formatProvider = null)
     {
         return _useUtc ? logEvent.Timestamp.UtcDateTime : logEvent.Timestamp.DateTime;
@@ -31,12 +33,14 @@ public class LevelColumnWriter : ColumnWriterBase
 {
     private readonly bool _asString;
 
+    /// <inheritdoc />
     public LevelColumnWriter(string columnName = "level", bool asString = true, string? columnType = null)
         : base(columnName, columnType ?? (asString ? "LowCardinality(String)" : "UInt8"))
     {
         _asString = asString;
     }
 
+    /// <inheritdoc />
     public override object? GetValue(LogEvent logEvent, IFormatProvider? formatProvider = null)
     {
         return _asString ? logEvent.Level.ToString() : (byte)logEvent.Level;
@@ -49,11 +53,13 @@ public class LevelColumnWriter : ColumnWriterBase
 /// </summary>
 public class RenderedMessageColumnWriter : ColumnWriterBase
 {
+    /// <inheritdoc />
     public RenderedMessageColumnWriter(string columnName = "message", string? columnType = null)
         : base(columnName, columnType ?? "String")
     {
     }
 
+    /// <inheritdoc />
     public override object? GetValue(LogEvent logEvent, IFormatProvider? formatProvider = null)
     {
         return logEvent.RenderMessage(formatProvider);
@@ -66,11 +72,13 @@ public class RenderedMessageColumnWriter : ColumnWriterBase
 /// </summary>
 public class MessageTemplateColumnWriter : ColumnWriterBase
 {
+    /// <inheritdoc />
     public MessageTemplateColumnWriter(string columnName = "message_template", string? columnType = null)
         : base(columnName, columnType ?? "String")
     {
     }
 
+    /// <inheritdoc />
     public override object? GetValue(LogEvent logEvent, IFormatProvider? formatProvider = null)
     {
         return logEvent.MessageTemplate.Text;
@@ -83,11 +91,13 @@ public class MessageTemplateColumnWriter : ColumnWriterBase
 /// </summary>
 public class ExceptionColumnWriter : ColumnWriterBase
 {
+    /// <inheritdoc />
     public ExceptionColumnWriter(string columnName = "exception", string? columnType = null)
         : base(columnName, columnType ?? "Nullable(String)")
     {
     }
 
+    /// <inheritdoc />
     public override object? GetValue(LogEvent logEvent, IFormatProvider? formatProvider = null)
     {
         return logEvent.Exception?.ToString();

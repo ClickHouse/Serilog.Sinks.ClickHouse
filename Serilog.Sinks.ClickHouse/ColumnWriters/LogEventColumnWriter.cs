@@ -11,12 +11,14 @@ public class LogEventColumnWriter : ColumnWriterBase
 {
     private readonly JsonFormatter _formatter;
 
+    /// <inheritdoc />
     public LogEventColumnWriter(string columnName = "log_event", string? columnType = null, IFormatProvider? formatProvider = null)
         : base(columnName, columnType ?? "String")
     {
         _formatter = new JsonFormatter(formatProvider: formatProvider);
     }
 
+    /// <inheritdoc />
     public override object? GetValue(LogEvent logEvent, IFormatProvider? formatProvider = null)
     {
         var sb = StringBuilderPool.Get();
