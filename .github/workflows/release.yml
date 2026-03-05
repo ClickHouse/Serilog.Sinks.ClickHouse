@@ -22,7 +22,7 @@ jobs:
       run: dotnet build Serilog.Sinks.ClickHouse/Serilog.Sinks.ClickHouse.csproj --configuration Release /p:Version=${{ inputs.version }}
 
     - name: Upload unsigned package
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         name: package-unsigned-${{ inputs.version }}
         path: Serilog.Sinks.ClickHouse/bin/Release/Serilog.Sinks.ClickHouse.*nupkg
@@ -112,7 +112,7 @@ jobs:
         dotnet nuget verify --all "${{ github.workspace }}\package\*.nupkg"
 
     - name: Upload signed package
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         name: package
         path: ${{ github.workspace }}/package/Serilog.Sinks.ClickHouse.*nupkg
