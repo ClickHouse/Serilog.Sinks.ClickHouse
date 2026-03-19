@@ -1,3 +1,7 @@
+## v2.1.0
+
+- `SchemaBuilder.AddIndex()` — add ClickHouse data-skipping indexes to auto-created tables (e.g. `set`, `minmax`, `tokenbf_v1`)
+
 ## v2.0.0
 
 Complete rewrite of the ClickHouse Serilog sink, built on top of the official [ClickHouse.Driver](https://github.com/ClickHouse/clickhouse-cs).

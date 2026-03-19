@@ -181,4 +181,46 @@ public class SchemaBuilderTests
         var column = schema.Columns.First();
         Assert.That(column.ColumnType, Is.EqualTo("Int64"));
     }
+
+    [Test]
+    public void AddIndex_AddsSingleIndex()
+    {
+        var schema = new SchemaBuilder()
+            .WithTableName("logs")
+            .AddTimestampColumn()
+            .AddIndex("INDEX idx_level level TYPE set(0) GRANULARITY 1")
+            .Build();
+
+        Assert.That(schema.Indexes, Has.Count.EqualTo(1));
+        Assert.That(schema.Indexes[0], Is.EqualTo("INDEX idx_level level TYPE set(0) GRANULARITY 1"));
+    }
+
+    [Test]
+    public void AddIndex_AddsMultipleIndexes()
+    {
+        var schema = new SchemaBuilder()
+            .WithTableName("logs")
+            .AddTimestampColumn()
+            .AddLevelColumn()
+            .AddMessageColumn()
+            .AddIndex("INDEX idx_level level TYPE set(0) GRANULARITY 1")
+            .AddIndex("INDEX idx_message message TYPE tokenbf_v1(32768, 3, 0) GRANULARITY 1")
+            .Build();
+
+        Assert.That(schema.Indexes, Has.Count.EqualTo(2));
+    }
+
+    [Test]
+    public void AddIndex_ThrowsException_WhenDefinitionIsEmpty()
+    {
+        Assert.Throws<ArgumentException>(() => new SchemaBuilder()
+            .AddIndex(""));
+    }
+
+    [Test]
+    public void AddIndex_ThrowsException_WhenDefinitionIsWhitespace()
+    {
+        Assert.Throws<ArgumentException>(() => new SchemaBuilder()
+            .AddIndex("   "));
+    }
 }

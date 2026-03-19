@@ -30,6 +30,11 @@ public sealed record TableSchema
     public TableEngine Engine { get; init; } = new DefaultEngine();
 
     /// <summary>
+    /// Optional table indexes (e.g. "INDEX idx_level level TYPE set(0) GRANULARITY 1").
+    /// </summary>
+    public IReadOnlyList<string> Indexes { get; init; } = Array.Empty<string>();
+
+    /// <summary>
     /// Optional table comment.
     /// </summary>
     public string? Comment { get; init; }

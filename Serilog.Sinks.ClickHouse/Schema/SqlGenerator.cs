@@ -42,6 +42,8 @@ public static class SqlGenerator
         sb.AppendLine(" (");
 
         var columns = schema.Columns.ToList();
+        var hasIndexes = schema.Indexes is { Count: > 0 };
+
         for (var i = 0; i < columns.Count; i++)
         {
             var column = columns[i];
@@ -50,10 +52,24 @@ public static class SqlGenerator
             sb.Append(' ');
             sb.Append(column.ColumnType);
 
-            if (i < columns.Count - 1)
+            if (i < columns.Count - 1 || hasIndexes)
                 sb.Append(',');
 
             sb.AppendLine();
+        }
+
+        if (hasIndexes)
+        {
+            for (var i = 0; i < schema.Indexes.Count; i++)
+            {
+                sb.Append("    ");
+                sb.Append(schema.Indexes[i]);
+
+                if (i < schema.Indexes.Count - 1)
+                    sb.Append(',');
+
+                sb.AppendLine();
+            }
         }
 
         sb.AppendLine(")");
