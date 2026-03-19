@@ -193,7 +193,7 @@ The sink uses Serilog's `BatchingOptions` to control buffer size and flush event
 .WriteTo.ClickHouse(
     connectionString: "Host=localhost;Port=9000;Database=logs",
     tableName: "app_logs",
-    batchSizeLimit: 10,000,           // Max events per batch (default: 10,000)
+    batchSizeLimit: 10_000,           // Max events per batch (default: 10,000)
     flushInterval: TimeSpan.FromSeconds(10),  // Time between flushes (default: 5s)
     queueLimit: 100_000)           // Max events in queue (default: 100,000)
 ```
