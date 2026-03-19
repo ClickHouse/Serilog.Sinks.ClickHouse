@@ -214,6 +214,61 @@ public class ClickHouseSinkIntegrationTests
     }
 
     [Test]
+    public async Task EmitBatchAsync_WithIndexes_CreatesTableWithIndexes()
+    {
+        var table = UniqueTable("indexes");
+        var schema = new SchemaBuilder()
+            .WithTableName(table)
+            .AddTimestampColumn()
+            .AddLevelColumn()
+            .AddMessageColumn()
+            .AddIndex("INDEX idx_level level TYPE set(0) GRANULARITY 1")
+            .AddIndex("INDEX idx_message message TYPE tokenbf_v1(32768, 3, 0) GRANULARITY 1")
+            .WithEngine(new CustomEngine("ENGINE = MergeTree() ORDER BY (timestamp)"))
+            .Build();
+
+        var options = new ClickHouseSinkOptions
+        {
+            ConnectionString = ConnectionString,
+            Schema = schema,
+        };
+
+        using var sink = new ClickHouseSink(options);
+
+        var logEvent = new LogEventBuilder()
+            .WithLevel(LogEventLevel.Warning)
+            .WithMessage("Index test message")
+            .Build();
+
+        await sink.EmitBatchAsync(new[] { logEvent });
+
+        // Verify data was written
+        using var client = new ClickHouseClient(ConnectionString);
+        var reader = await client.ExecuteReaderAsync(
+            $"SELECT level, message FROM {SqlGenerator.EscapeTableName(table)} LIMIT 1");
+
+        Assert.That(reader.Read(), Is.True);
+        Assert.That(reader.GetString(0), Is.EqualTo("Warning"));
+        Assert.That(reader.GetString(1), Is.EqualTo("Index test message"));
+
+        // Verify indexes exist in system.data_skipping_indices
+        var indexReader = await client.ExecuteReaderAsync(
+            $"SELECT name, expr, type FROM system.data_skipping_indices WHERE table = '{table}' AND database = currentDatabase() ORDER BY name");
+
+        var indexes = new List<(string Name, string Expr, string Type)>();
+        while (indexReader.Read())
+        {
+            indexes.Add((indexReader.GetString(0), indexReader.GetString(1), indexReader.GetString(2)));
+        }
+
+        Assert.That(indexes, Has.Count.EqualTo(2));
+        Assert.That(indexes[0].Name, Is.EqualTo("idx_level"));
+        Assert.That(indexes[0].Type, Is.EqualTo("set"));
+        Assert.That(indexes[1].Name, Is.EqualTo("idx_message"));
+        Assert.That(indexes[1].Type, Is.EqualTo("tokenbf_v1"));
+    }
+
+    [Test]
     public async Task EmitBatchAsync_InvokesOnBatchWritten_OnSuccess()
     {
         var table = UniqueTable("callback");

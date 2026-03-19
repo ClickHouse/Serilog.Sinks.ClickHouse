@@ -119,7 +119,25 @@ Use the schema builder to control which columns are created, their names, types,
 | `AddPropertiesColumn(name, columnType)` | Properties with a custom type string. |
 | `AddPropertyColumn(property, type, ...)` | Single named property extracted into its own column. |
 | `AddLogEventColumn(name)` | Entire log event serialized as JSON. |
+| `AddIndex(indexDefinition)` | Raw index clause included verbatim in CREATE TABLE. |
 | `AddColumn(columnWriter)` | Any custom `ColumnWriterBase` implementation. |
+
+### Adding Indexes
+
+Use `AddIndex` to add [ClickHouse data-skipping indexes](https://clickhouse.com/docs/en/guides/improving-query-performance/skipping-indexes) to the table. Each call takes the full index clause as a string:
+
+```csharp
+.WriteTo.ClickHouse(
+    connectionString: "Host=localhost;Port=9000;Database=logs",
+    configureSchema: schema => schema
+        .WithTableName("app_logs")
+        .AddTimestampColumn()
+        .AddLevelColumn()
+        .AddMessageColumn()
+        .AddIndex("INDEX idx_level level TYPE set(0) GRANULARITY 1")
+        .AddIndex("INDEX idx_message message TYPE tokenbf_v1(32768, 3, 0) GRANULARITY 1")
+        .WithEngine("ENGINE = MergeTree() ORDER BY (timestamp)"))
+```
 
 ### Choosing ORDER BY
 
@@ -175,7 +193,7 @@ The sink uses Serilog's `BatchingOptions` to control buffer size and flush event
 .WriteTo.ClickHouse(
     connectionString: "Host=localhost;Port=9000;Database=logs",
     tableName: "app_logs",
-    batchSizeLimit: 10,000,           // Max events per batch (default: 10,000)
+    batchSizeLimit: 10_000,           // Max events per batch (default: 10,000)
     flushInterval: TimeSpan.FromSeconds(10),  // Time between flushes (default: 5s)
     queueLimit: 100_000)           // Max events in queue (default: 100,000)
 ```

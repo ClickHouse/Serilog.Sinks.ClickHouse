@@ -10,6 +10,7 @@ public sealed class SchemaBuilder
     private string? _database;
     private string _tableName = "logs";
     private readonly List<ColumnWriterBase> _columns = new();
+    private readonly List<string> _indexes = new();
     private TableEngine _engine = new DefaultEngine();
     private string? _comment;
 
@@ -152,6 +153,22 @@ public sealed class SchemaBuilder
     }
 
     /// <summary>
+    /// Adds a raw index definition to the table schema.
+    /// The definition is included verbatim in the CREATE TABLE statement.
+    /// </summary>
+    /// <param name="indexDefinition">
+    /// The full index clause, e.g. <c>"INDEX idx_level level TYPE set(0) GRANULARITY 1"</c>.
+    /// </param>
+    public SchemaBuilder AddIndex(string indexDefinition)
+    {
+        if (string.IsNullOrWhiteSpace(indexDefinition))
+            throw new ArgumentException("Index definition cannot be empty.", nameof(indexDefinition));
+
+        _indexes.Add(indexDefinition);
+        return this;
+    }
+
+    /// <summary>
     /// Sets the table engine directly.
     /// </summary>
     public SchemaBuilder WithEngine(TableEngine engine)
@@ -194,6 +211,7 @@ public sealed class SchemaBuilder
             Database = _database,
             TableName = _tableName,
             Columns = _columns.ToList().AsReadOnly(),
+            Indexes = _indexes.ToList().AsReadOnly(),
             Engine = _engine,
             Comment = _comment,
         };

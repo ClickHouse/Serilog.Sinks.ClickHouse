@@ -197,4 +197,58 @@ public class SqlGeneratorTests
 
         Assert.DoesNotThrow(() => SqlGenerator.GenerateCreateTable(schema));
     }
+
+    [Test]
+    public void GenerateCreateTable_IncludesSingleIndex()
+    {
+        var schema = new SchemaBuilder()
+            .WithTableName("logs")
+            .AddTimestampColumn()
+            .AddLevelColumn()
+            .AddIndex("INDEX idx_level level TYPE set(0) GRANULARITY 1")
+            .Build();
+
+        var sql = SqlGenerator.GenerateCreateTable(schema);
+
+        Assert.That(sql, Does.Contain("INDEX idx_level level TYPE set(0) GRANULARITY 1"));
+    }
+
+    [Test]
+    public void GenerateCreateTable_IncludesMultipleIndexes_WithCorrectCommas()
+    {
+        var schema = new SchemaBuilder()
+            .WithTableName("logs")
+            .AddTimestampColumn()
+            .AddLevelColumn()
+            .AddIndex("INDEX idx_level level TYPE set(0) GRANULARITY 1")
+            .AddIndex("INDEX idx_ts timestamp TYPE minmax GRANULARITY 1")
+            .Build();
+
+        var sql = SqlGenerator.GenerateCreateTable(schema);
+
+        // Both indexes present
+        Assert.That(sql, Does.Contain("INDEX idx_level level TYPE set(0) GRANULARITY 1"));
+        Assert.That(sql, Does.Contain("INDEX idx_ts timestamp TYPE minmax GRANULARITY 1"));
+
+        // Last column has a trailing comma (because indexes follow)
+        Assert.That(sql, Does.Contain("level LowCardinality(String),"));
+
+        // First index has a comma, second does not
+        Assert.That(sql, Does.Contain("INDEX idx_level level TYPE set(0) GRANULARITY 1,"));
+        Assert.That(sql, Does.Not.Contain("INDEX idx_ts timestamp TYPE minmax GRANULARITY 1,"));
+    }
+
+    [Test]
+    public void GenerateCreateTable_NoIndexes_LastColumnHasNoTrailingComma()
+    {
+        var schema = new SchemaBuilder()
+            .WithTableName("logs")
+            .AddTimestampColumn()
+            .Build();
+
+        var sql = SqlGenerator.GenerateCreateTable(schema);
+
+        // The timestamp column line should NOT end with a comma
+        Assert.That(sql, Does.Not.Contain("DateTime64(6),"));
+    }
 }
