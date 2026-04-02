@@ -36,7 +36,7 @@ jobs:
         run: dotnet test Serilog.Sinks.ClickHouse.Tests/Serilog.Sinks.ClickHouse.Tests.csproj --framework net10.0 --configuration Release --verbosity normal --logger GitHubActions /clp:ErrorsOnly /p:CollectCoverage=true /p:CoverletOutputFormat=opencover /p:SkipAutoProps=true
 
       - name: Upload Coverage
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v6
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: false
