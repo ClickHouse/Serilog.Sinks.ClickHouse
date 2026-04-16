@@ -1,3 +1,8 @@
+## v2.2.0
+
+- Column-level DDL options: `codec`, `defaultExpression`, `ttl`, and `comment` on all `Add*Column` builder methods, maps to ClickHouse `CODEC(...)`, `DEFAULT expr`, `TTL expr`, and `COMMENT 'text'` clauses
+- `SchemaBuilder.OnCluster()`: adds `ON CLUSTER cluster_name` to `CREATE TABLE` and `DROP TABLE` DDL for distributed ClickHouse deployments
+
 ## v2.1.0
 
 - `SchemaBuilder.AddIndex()` — add ClickHouse data-skipping indexes to auto-created tables (e.g. `set`, `minmax`, `tokenbf_v1`)

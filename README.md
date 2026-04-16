@@ -121,6 +121,20 @@ Use the schema builder to control which columns are created, their names, types,
 | `AddLogEventColumn(name)` | Entire log event serialized as JSON. |
 | `AddIndex(indexDefinition)` | Raw index clause included verbatim in CREATE TABLE. |
 | `AddColumn(columnWriter)` | Any custom `ColumnWriterBase` implementation. |
+| `OnCluster(clusterName)` | Adds `ON CLUSTER` clause for distributed DDL. |
+
+All column methods also accept optional `codec`, `defaultExpression`, `ttl`, and `comment` parameters for column-level DDL.
+
+### Column Options
+
+Each column method accepts optional DDL modifiers: `codec`, `defaultExpression`, `ttl`, and `comment`. These map directly to the ClickHouse column definition clauses:
+
+| Option | Column clause | Example |
+|--------|--------------|---------|
+| `codec` | `CODEC(...)` | `"ZSTD"`, `"FSST, ZSTD"`, `"DoubleDelta, ZSTD"` |
+| `defaultExpression` | `DEFAULT expr` | `"now()"`, `"'unknown'"`, `"0"` |
+| `ttl` | `TTL expr` | `"timestamp + INTERVAL 30 DAY"` |
+| `comment` | `COMMENT 'text'` | `"Event timestamp in UTC"` |
 
 ### Adding Indexes
 
@@ -138,6 +152,24 @@ Use `AddIndex` to add [ClickHouse data-skipping indexes](https://clickhouse.com/
         .AddIndex("INDEX idx_message message TYPE tokenbf_v1(32768, 3, 0) GRANULARITY 1")
         .WithEngine("ENGINE = MergeTree() ORDER BY (timestamp)"))
 ```
+
+### Cluster Support (ON CLUSTER)
+
+For distributed ClickHouse deployments, use `OnCluster()` to include an `ON CLUSTER` clause in DDL statements:
+
+```csharp
+.WriteTo.ClickHouse(
+    connectionString: "Host=localhost;Port=9000;Database=logs",
+    configureSchema: schema => schema
+        .WithTableName("app_logs")
+        .OnCluster("my_cluster")
+        .AddTimestampColumn()
+        .AddLevelColumn()
+        .AddMessageColumn()
+        .WithEngine("ENGINE = ReplicatedMergeTree('/clickhouse/tables/{shard}/app_logs', '{replica}') ORDER BY (timestamp)"))
+```
+
+This generates `CREATE TABLE IF NOT EXISTS app_logs ON CLUSTER my_cluster (...)`. The `ON CLUSTER` clause is also included in `DROP TABLE` when using `TableCreationMode.DropAndRecreate`.
 
 ### Choosing ORDER BY
 

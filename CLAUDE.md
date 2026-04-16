@@ -24,10 +24,14 @@ dotnet build --configuration Release --framework net8.0
 dotnet test --configuration Release --framework net8.0
 
 # Run unit tests only (no Docker needed)
-dotnet test --configuration Release --framework net8.0 --filter "Category!=Integration"
+dotnet test --configuration Release --framework net8.0 --filter "Category!=Integration&Category!=Cluster"
 
 # Run integration tests only (requires Docker)
 dotnet test --configuration Release --framework net8.0 --filter "Category=Integration"
+
+# Run cluster tests (requires docker-compose.cluster.yml running)
+# docker compose -f docker-compose.cluster.yml up -d
+dotnet test --configuration Release --framework net8.0 --filter "Category=Cluster"
 ```
 
 ## Target Frameworks
@@ -61,9 +65,18 @@ Serilog.Sinks.ClickHouse.Tests/     # Test project
 │   ├── ClickHouseFixture.cs         # Testcontainers ClickHouse lifecycle
 │   └── LogEventBuilder.cs           # Fluent test log event builder
 ├── Integration/                     # Tests requiring Docker + ClickHouse
+│   └── Cluster/                     # Tests requiring 2-node cluster (docker-compose)
 └── Unit/                            # NSubstitute mock-based tests
     ├── ColumnWriters/
     └── Schema/
+
+.docker/                             # Docker configs for CI cluster
+├── clickhouse/
+│   ├── users.xml                    # Shared ClickHouse users config
+│   └── cluster/
+│       ├── server1_config.xml       # Node 1: Keeper + cluster config
+│       └── server2_config.xml       # Node 2: Keeper + cluster config
+docker-compose.cluster.yml           # 2-node cluster for ON CLUSTER tests
 ```
 
 ## Key Dependencies
@@ -99,8 +112,12 @@ Serilog.Sinks.ClickHouse.Tests/     # Test project
 - **IClickHouseClient** interface enables unit testing with mocks
 - **SQL injection prevention** via `SqlGenerator` with regex identifier validation and backtick quoting
 - **Integration tests** use TestContainers to run ClickHouse
+- **Cluster tests** use docker-compose.cluster.yml (2-node ClickHouse with embedded Keeper)
+- **Column DDL options** — `ColumnWriterBase` exposes `Default`, `Codec`, `Ttl`, `Comment` properties; `SqlGenerator` emits them in ClickHouse DDL order
+- **ON CLUSTER** — `TableSchema.ClusterName` / `SchemaBuilder.OnCluster()` adds `ON CLUSTER` to CREATE/DROP TABLE
 
 ## CI/CD
 
 - **Tests:** GitHub Actions matrix across net6.0–net10.0 on ubuntu-latest, fail-fast disabled
+- **Cluster tests:** Separate CI job using `isbang/compose-action` with `docker-compose.cluster.yml`
 - **Release:** Manual workflow_dispatch — build, DigiCert code signing, NuGet push, GitHub release

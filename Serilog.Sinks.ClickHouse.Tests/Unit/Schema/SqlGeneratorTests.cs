@@ -1,4 +1,3 @@
-using Serilog.Sinks.ClickHouse.ColumnWriters;
 using Serilog.Sinks.ClickHouse.Schema;
 
 namespace Serilog.Sinks.ClickHouse.Tests.Unit.Schema;
@@ -250,5 +249,156 @@ public class SqlGeneratorTests
 
         // The timestamp column line should NOT end with a comma
         Assert.That(sql, Does.Not.Contain("DateTime64(6),"));
+    }
+
+    [Test]
+    public void GenerateCreateTable_IncludesOnCluster_WhenSpecified()
+    {
+        var schema = new SchemaBuilder()
+            .WithTableName("logs")
+            .OnCluster("my_cluster")
+            .AddTimestampColumn()
+            .Build();
+
+        var sql = SqlGenerator.GenerateCreateTable(schema);
+
+        Assert.That(sql, Does.Contain("CREATE TABLE IF NOT EXISTS logs ON CLUSTER my_cluster ("));
+    }
+
+    [Test]
+    public void GenerateCreateTable_OmitsOnCluster_WhenNotSpecified()
+    {
+        var schema = new SchemaBuilder()
+            .WithTableName("logs")
+            .AddTimestampColumn()
+            .Build();
+
+        var sql = SqlGenerator.GenerateCreateTable(schema);
+
+        Assert.That(sql, Does.Not.Contain("ON CLUSTER"));
+    }
+
+    [Test]
+    public void GenerateCreateTable_OnCluster_WithDatabase()
+    {
+        var schema = new SchemaBuilder()
+            .WithDatabase("mydb")
+            .WithTableName("logs")
+            .OnCluster("my_cluster")
+            .AddTimestampColumn()
+            .Build();
+
+        var sql = SqlGenerator.GenerateCreateTable(schema);
+
+        Assert.That(sql, Does.Contain("CREATE TABLE IF NOT EXISTS mydb.logs ON CLUSTER my_cluster ("));
+    }
+
+    [Test]
+    public void GenerateDropTable_IncludesOnCluster_WhenSpecified()
+    {
+        var schema = new SchemaBuilder()
+            .WithDatabase("mydb")
+            .WithTableName("logs")
+            .OnCluster("my_cluster")
+            .AddTimestampColumn()
+            .Build();
+
+        var sql = SqlGenerator.GenerateDropTable(schema);
+
+        Assert.That(sql, Is.EqualTo("DROP TABLE IF EXISTS mydb.logs ON CLUSTER my_cluster"));
+    }
+
+    [Test]
+    public void GenerateCreateTable_IncludesCodec_WhenSpecified()
+    {
+        var schema = new SchemaBuilder()
+            .WithTableName("logs")
+            .AddTimestampColumn(codec: "DoubleDelta, ZSTD")
+            .AddMessageColumn(codec: "ZSTD")
+            .Build();
+
+        var sql = SqlGenerator.GenerateCreateTable(schema);
+
+        Assert.That(sql, Does.Contain("DateTime64(6) CODEC(DoubleDelta, ZSTD)"));
+        Assert.That(sql, Does.Contain("message String CODEC(ZSTD)"));
+    }
+
+    [Test]
+    public void GenerateCreateTable_OmitsCodec_WhenNotSpecified()
+    {
+        var schema = new SchemaBuilder()
+            .WithTableName("logs")
+            .AddTimestampColumn()
+            .Build();
+
+        var sql = SqlGenerator.GenerateCreateTable(schema);
+
+        Assert.That(sql, Does.Not.Contain("CODEC"));
+    }
+
+    [Test]
+    public void GenerateCreateTable_IncludesDefault_WhenSpecified()
+    {
+        var schema = new SchemaBuilder()
+            .WithTableName("logs")
+            .AddTimestampColumn(defaultExpression: "now()")
+            .Build();
+
+        var sql = SqlGenerator.GenerateCreateTable(schema);
+
+        Assert.That(sql, Does.Contain("DateTime64(6) DEFAULT now()"));
+    }
+
+    [Test]
+    public void GenerateCreateTable_IncludesColumnTtl_WhenSpecified()
+    {
+        var schema = new SchemaBuilder()
+            .WithTableName("logs")
+            .AddTimestampColumn()
+            .AddExceptionColumn(ttl: "timestamp + INTERVAL 30 DAY")
+            .Build();
+
+        var sql = SqlGenerator.GenerateCreateTable(schema);
+
+        Assert.That(sql, Does.Contain("Nullable(String) TTL timestamp + INTERVAL 30 DAY"));
+    }
+
+    [Test]
+    public void GenerateCreateTable_IncludesColumnComment_WhenSpecified()
+    {
+        var schema = new SchemaBuilder()
+            .WithTableName("logs")
+            .AddTimestampColumn(comment: "Event timestamp in UTC")
+            .Build();
+
+        var sql = SqlGenerator.GenerateCreateTable(schema);
+
+        Assert.That(sql, Does.Contain("COMMENT 'Event timestamp in UTC'"));
+    }
+
+    [Test]
+    public void GenerateCreateTable_ColumnComment_EscapesSingleQuotes()
+    {
+        var schema = new SchemaBuilder()
+            .WithTableName("logs")
+            .AddTimestampColumn(comment: "It's the event time")
+            .Build();
+
+        var sql = SqlGenerator.GenerateCreateTable(schema);
+
+        Assert.That(sql, Does.Contain("COMMENT 'It\\'s the event time'"));
+    }
+
+    [Test]
+    public void GenerateCreateTable_PropertyColumn_WithCodec()
+    {
+        var schema = new SchemaBuilder()
+            .WithTableName("logs")
+            .AddPropertyColumn("RequestPath", type: "String", codec: "FSST, ZSTD")
+            .Build();
+
+        var sql = SqlGenerator.GenerateCreateTable(schema);
+
+        Assert.That(sql, Does.Contain("String CODEC(FSST, ZSTD)"));
     }
 }

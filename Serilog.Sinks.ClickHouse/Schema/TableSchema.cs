@@ -35,6 +35,12 @@ public sealed record TableSchema
     public IReadOnlyList<string> Indexes { get; init; } = Array.Empty<string>();
 
     /// <summary>
+    /// Optional cluster name for distributed DDL (ON CLUSTER clause).
+    /// When set, CREATE TABLE and DROP TABLE statements include <c>ON CLUSTER cluster_name</c>.
+    /// </summary>
+    public string? ClusterName { get; init; }
+
+    /// <summary>
     /// Optional table comment.
     /// </summary>
     public string? Comment { get; init; }

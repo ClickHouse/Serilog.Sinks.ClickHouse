@@ -97,6 +97,9 @@ Use the schema builder to control which columns are created, their names, types,
 | `AddPropertyColumn(property, type, ...)` | Single named property extracted into its own column. |
 | `AddLogEventColumn(name)` | Entire log event serialized as JSON. |
 | `AddColumn(columnWriter)` | Any custom `ColumnWriterBase` implementation. |
+| `OnCluster(clusterName)` | Adds `ON CLUSTER` clause for distributed DDL. |
+
+All column methods also accept optional `codec`, `defaultExpression`, `ttl`, and `comment` parameters for column-level DDL.
 
 ### Choosing ORDER BY
 

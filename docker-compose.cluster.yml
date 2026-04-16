@@ -1,0 +1,30 @@
+services:
+  clickhouse1:
+    image: clickhouse/clickhouse-server:${CLICKHOUSE_VERSION:-latest}
+    hostname: clickhouse1
+    ports:
+      - "8124:8123"
+      - "9000:9000"
+    volumes:
+      - .docker/clickhouse/cluster/server1_config.xml:/etc/clickhouse-server/config.xml
+      - .docker/clickhouse/users.xml:/etc/clickhouse-server/users.xml
+    healthcheck:
+      test: ["CMD", "clickhouse-client", "--query", "SELECT 1"]
+      interval: 2s
+      timeout: 5s
+      retries: 20
+
+  clickhouse2:
+    image: clickhouse/clickhouse-server:${CLICKHOUSE_VERSION:-latest}
+    hostname: clickhouse2
+    ports:
+      - "8125:8123"
+      - "9001:9000"
+    volumes:
+      - .docker/clickhouse/cluster/server2_config.xml:/etc/clickhouse-server/config.xml
+      - .docker/clickhouse/users.xml:/etc/clickhouse-server/users.xml
+    healthcheck:
+      test: ["CMD", "clickhouse-client", "--query", "SELECT 1"]
+      interval: 2s
+      timeout: 5s
+      retries: 20
