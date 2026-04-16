@@ -8,7 +8,8 @@ services:
       - "8124:8123"
       - "9000:9000"
     volumes:
-      - .docker/clickhouse/cluster/server1_config.xml:/etc/clickhouse-server/config.xml
+      - .docker/clickhouse/cluster/cluster.xml:/etc/clickhouse-server/config.d/cluster.xml
+      - .docker/clickhouse/cluster/node1.xml:/etc/clickhouse-server/config.d/node.xml
       - .docker/clickhouse/users.xml:/etc/clickhouse-server/users.xml
     healthcheck:
       test: ["CMD", "clickhouse-client", "--query", "SELECT 1"]
@@ -21,11 +22,15 @@ services:
     hostname: clickhouse2
     environment:
       CLICKHOUSE_SKIP_USER_SETUP: "1"
+    depends_on:
+      clickhouse1:
+        condition: service_healthy
     ports:
       - "8125:8123"
       - "9001:9000"
     volumes:
-      - .docker/clickhouse/cluster/server2_config.xml:/etc/clickhouse-server/config.xml
+      - .docker/clickhouse/cluster/cluster.xml:/etc/clickhouse-server/config.d/cluster.xml
+      - .docker/clickhouse/cluster/node2.xml:/etc/clickhouse-server/config.d/node.xml
       - .docker/clickhouse/users.xml:/etc/clickhouse-server/users.xml
     healthcheck:
       test: ["CMD", "clickhouse-client", "--query", "SELECT 1"]
