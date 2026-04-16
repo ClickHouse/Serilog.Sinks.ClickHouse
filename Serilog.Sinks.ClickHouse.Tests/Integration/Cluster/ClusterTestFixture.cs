@@ -5,7 +5,7 @@ namespace Serilog.Sinks.ClickHouse.Tests.Integration.Cluster;
 /// <summary>
 /// Shared setup fixture for cluster integration tests.
 /// Expects a 2-node ClickHouse cluster started via docker-compose.cluster.yml
-/// with node1 on port 9000 and node2 on port 9001.
+/// with node1 HTTP on 8124 and node2 HTTP on 8125.
 /// </summary>
 [SetUpFixture]
 [Category("Cluster")]
@@ -14,12 +14,12 @@ public class ClusterTestFixture
     /// <summary>
     /// Connection string for node 1 of the test cluster.
     /// </summary>
-    public static string Node1ConnectionString => "Host=localhost;Port=9000";
+    public static string Node1ConnectionString => "Host=localhost;Port=8124";
 
     /// <summary>
     /// Connection string for node 2 of the test cluster.
     /// </summary>
-    public static string Node2ConnectionString => "Host=localhost;Port=9001";
+    public static string Node2ConnectionString => "Host=localhost;Port=8125";
 
     /// <summary>
     /// The cluster name matching the docker-compose configuration.

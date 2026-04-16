@@ -36,7 +36,7 @@ jobs:
       run: dotnet build --no-restore --configuration Release --framework ${{ matrix.framework }}
 
     - name: Test
-      run: dotnet test --no-build --configuration Release --framework ${{ matrix.framework }}
+      run: dotnet test --no-build --configuration Release --framework ${{ matrix.framework }} --filter "Category!=Cluster"
 
   cluster-test:
     name: Cluster tests (.NET net8.0)
