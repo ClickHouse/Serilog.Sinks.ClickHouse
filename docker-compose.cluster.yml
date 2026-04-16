@@ -2,6 +2,8 @@ services:
   clickhouse1:
     image: clickhouse/clickhouse-server:${CLICKHOUSE_VERSION:-latest}
     hostname: clickhouse1
+    environment:
+      CLICKHOUSE_SKIP_USER_SETUP: "1"
     ports:
       - "8124:8123"
       - "9000:9000"
@@ -17,6 +19,8 @@ services:
   clickhouse2:
     image: clickhouse/clickhouse-server:${CLICKHOUSE_VERSION:-latest}
     hostname: clickhouse2
+    environment:
+      CLICKHOUSE_SKIP_USER_SETUP: "1"
     ports:
       - "8125:8123"
       - "9001:9000"
