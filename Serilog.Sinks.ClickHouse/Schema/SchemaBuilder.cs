@@ -180,8 +180,10 @@ public sealed class SchemaBuilder
 
     /// <summary>
     /// Adds a properties column that captures all log event properties as JSON. ClickHouse type: <c>JSON</c>.
-    /// To set column-level DDL options (codec, default, etc.), use
-    /// <see cref="AddColumn"/> with a <see cref="PropertiesColumnWriter"/> instead.
+    /// To set column-level DDL options (codec, default, ttl, comment), use the
+    /// <see cref="AddPropertiesColumn(string, string, string?, string?, string?, string?)"/> overload
+    /// with an explicit <c>columnType</c>, or <see cref="AddColumn"/> with a pre-built
+    /// <see cref="PropertiesColumnWriter"/>.
     /// </summary>
     /// <param name="name">Column name.</param>
     public SchemaBuilder AddPropertiesColumn(string name = "properties")

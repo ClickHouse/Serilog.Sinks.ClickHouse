@@ -74,8 +74,9 @@ Serilog.Sinks.ClickHouse.Tests/     # Test project
 ├── clickhouse/
 │   ├── users.xml                    # Shared ClickHouse users config
 │   └── cluster/
-│       ├── server1_config.xml       # Node 1: Keeper + cluster config
-│       └── server2_config.xml       # Node 2: Keeper + cluster config
+│       ├── cluster.xml              # Shared: remote_servers, zookeeper, distributed_ddl
+│       ├── node1.xml                 # Node 1: embedded Keeper + macros + interserver host
+│       └── node2.xml                 # Node 2: macros + interserver host
 docker-compose.cluster.yml           # 2-node cluster for ON CLUSTER tests
 ```
 

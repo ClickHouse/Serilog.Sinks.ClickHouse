@@ -96,10 +96,9 @@ public class ClusterIntegrationTests
             var count1 = await client1.ExecuteScalarAsync($"SELECT count() FROM {table}");
             Assert.That(Convert.ToInt64(count1), Is.EqualTo(2), "Node 1 should have 2 rows");
 
-            // Wait briefly for replication, then verify data on node 2
-            await Task.Delay(TimeSpan.FromSeconds(2));
-
+            // Force node 2 to drain its replication queue, then verify
             using var client2 = new ClickHouseClient(Node2);
+            await client2.ExecuteNonQueryAsync($"SYSTEM SYNC REPLICA {table}");
             var count2 = await client2.ExecuteScalarAsync($"SELECT count() FROM {table}");
             Assert.That(Convert.ToInt64(count2), Is.EqualTo(2), "Node 2 should have 2 replicated rows");
         }

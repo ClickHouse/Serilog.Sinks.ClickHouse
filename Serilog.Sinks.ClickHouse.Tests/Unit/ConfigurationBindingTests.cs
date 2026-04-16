@@ -17,7 +17,7 @@ public class ConfigurationBindingTests
             {
                 ["Serilog:Using:0"] = "Serilog.Sinks.ClickHouse",
                 ["Serilog:WriteTo:0:Name"] = "ClickHouse",
-                ["Serilog:WriteTo:0:Args:connectionString"] = "Host=localhost;Port=9000",
+                ["Serilog:WriteTo:0:Args:connectionString"] = "Host=localhost;Port=8123",
                 ["Serilog:WriteTo:0:Args:tableName"] = "test_logs",
             })
             .Build();
@@ -37,7 +37,7 @@ public class ConfigurationBindingTests
             {
                 ["Serilog:Using:0"] = "Serilog.Sinks.ClickHouse",
                 ["Serilog:WriteTo:0:Name"] = "ClickHouse",
-                ["Serilog:WriteTo:0:Args:connectionString"] = "Host=localhost;Port=9000",
+                ["Serilog:WriteTo:0:Args:connectionString"] = "Host=localhost;Port=8123",
                 ["Serilog:WriteTo:0:Args:tableName"] = "test_logs",
                 ["Serilog:WriteTo:0:Args:database"] = "my_database",
                 ["Serilog:WriteTo:0:Args:batchSizeLimit"] = "500",

@@ -24,7 +24,7 @@ public class ClickHouseSinkTests
 
         _defaultOptions = new ClickHouseSinkOptions
         {
-            ConnectionString = "Host=localhost;Port=9000;",
+            ConnectionString = "Host=localhost;Port=8123;",
             Schema = DefaultSchema.Create("test_logs").Build(),
             TableCreation = new TableCreationOptions
             {
@@ -131,7 +131,7 @@ public class ClickHouseSinkTests
 
         var options = new ClickHouseSinkOptions
         {
-            ConnectionString = "Host=localhost;Port=9000;",
+            ConnectionString = "Host=localhost;Port=8123;",
             Schema = DefaultSchema.Create("test_logs").Build(),
             TableCreation = new TableCreationOptions
             {

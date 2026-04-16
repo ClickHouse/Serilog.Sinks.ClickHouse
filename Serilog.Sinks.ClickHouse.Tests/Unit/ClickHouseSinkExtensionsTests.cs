@@ -133,7 +133,7 @@ public class ClickHouseSinkExtensionsTests
     {
         var options = new ClickHouseSinkOptions
         {
-            ConnectionString = "Host=myhost;Port=9000",
+            ConnectionString = "Host=myhost;Port=8123",
             Schema = DefaultSchema.Create("test_logs").Build(),
             TableCreation = new TableCreationOptions
             {
@@ -187,7 +187,7 @@ public class ClickHouseSinkExtensionsTests
     public void SimpleConnectionString_CreatesLogger()
     {
         var config = new LoggerConfiguration()
-            .WriteTo.ClickHouse("Host=localhost;Port=9000", tableName: "test_logs");
+            .WriteTo.ClickHouse("Host=localhost;Port=8123", tableName: "test_logs");
 
         using var logger = config.CreateLogger();
         Assert.That(logger, Is.Not.Null);
@@ -198,7 +198,7 @@ public class ClickHouseSinkExtensionsTests
     {
         var options = new ClickHouseSinkOptions
         {
-            ConnectionString = "Host=localhost;Port=9000",
+            ConnectionString = "Host=localhost;Port=8123",
             Schema = DefaultSchema.Create("test_logs").Build(),
         };
 
