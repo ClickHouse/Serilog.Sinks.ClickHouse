@@ -131,6 +131,10 @@ public static class SqlGenerator
         if (!string.IsNullOrEmpty(schema.ClusterName))
             sql += $" ON CLUSTER {EscapeIdentifier(schema.ClusterName)}";
 
+        // SYNC waits for Replicated tables to detach from Keeper before returning,
+        // preventing REPLICA_ALREADY_EXISTS on drop-then-recreate. No-op for non-Replicated engines.
+        sql += " SYNC";
+
         return sql;
     }
 

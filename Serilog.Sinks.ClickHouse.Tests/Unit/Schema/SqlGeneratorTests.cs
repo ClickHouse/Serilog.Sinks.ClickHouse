@@ -137,7 +137,7 @@ public class SqlGeneratorTests
 
         var sql = SqlGenerator.GenerateDropTable(schema);
 
-        Assert.That(sql, Is.EqualTo("DROP TABLE IF EXISTS mydb.logs"));
+        Assert.That(sql, Is.EqualTo("DROP TABLE IF EXISTS mydb.logs SYNC"));
     }
 
     [Test]
@@ -305,7 +305,7 @@ public class SqlGeneratorTests
 
         var sql = SqlGenerator.GenerateDropTable(schema);
 
-        Assert.That(sql, Is.EqualTo("DROP TABLE IF EXISTS mydb.logs ON CLUSTER my_cluster"));
+        Assert.That(sql, Is.EqualTo("DROP TABLE IF EXISTS mydb.logs ON CLUSTER my_cluster SYNC"));
     }
 
     [Test]
