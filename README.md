@@ -13,7 +13,7 @@
 </a>
 
 <a href="https://github.com/ClickHouse/Serilog.Sinks.ClickHouse/actions/workflows/tests.yml">
-<img src="https://github.com/ClickHouse/Serilog.Sinks.ClickHouse/actions/workflows/tests.yml/badge.svg?branch=master">
+<img src="https://github.com/ClickHouse/Serilog.Sinks.ClickHouse/actions/workflows/tests.yml/badge.svg?branch=main">
 </a>
 
 <a href="https://codecov.io/gh/ClickHouse/Serilog.Sinks.ClickHouse">
