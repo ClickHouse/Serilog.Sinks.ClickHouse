@@ -30,6 +30,30 @@ public abstract class ColumnWriterBase
     public string? ColumnType { get; }
 
     /// <summary>
+    /// Optional default expression for this column (e.g. "now()", "'unknown'", "0").
+    /// When set, the column definition includes a <c>DEFAULT expr</c> clause.
+    /// </summary>
+    public string? Default { get; set; }
+
+    /// <summary>
+    /// Optional compression codec for this column (e.g. "ZSTD", "LZ4", "FSST, ZSTD", "DoubleDelta, ZSTD").
+    /// When set, the column definition includes a <c>CODEC(...)</c> clause.
+    /// </summary>
+    public string? Codec { get; set; }
+
+    /// <summary>
+    /// Optional TTL expression for this column (e.g. "timestamp + INTERVAL 30 DAY").
+    /// When set, the column definition includes a <c>TTL expr</c> clause.
+    /// </summary>
+    public string? Ttl { get; set; }
+
+    /// <summary>
+    /// Optional comment for this column (e.g. "Event timestamp in UTC").
+    /// When set, the column definition includes a <c>COMMENT 'text'</c> clause.
+    /// </summary>
+    public string? Comment { get; set; }
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="ColumnWriterBase"/> class.
     /// </summary>
     /// <param name="columnName">The name of the column in the ClickHouse table.</param>

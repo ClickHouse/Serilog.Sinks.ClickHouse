@@ -39,6 +39,13 @@ public static class SqlGenerator
 
         sb.Append("CREATE TABLE IF NOT EXISTS ");
         sb.Append(EscapeTableName(schema.FullTableName));
+
+        if (!string.IsNullOrEmpty(schema.ClusterName))
+        {
+            sb.Append(" ON CLUSTER ");
+            sb.Append(EscapeIdentifier(schema.ClusterName));
+        }
+
         sb.AppendLine(" (");
 
         var columns = schema.Columns.ToList();
@@ -51,6 +58,32 @@ public static class SqlGenerator
             sb.Append(EscapeIdentifier(column.ColumnName));
             sb.Append(' ');
             sb.Append(column.ColumnType);
+
+            if (!string.IsNullOrWhiteSpace(column.Default))
+            {
+                sb.Append(" DEFAULT ");
+                sb.Append(column.Default);
+            }
+
+            if (!string.IsNullOrWhiteSpace(column.Comment))
+            {
+                sb.Append(" COMMENT '");
+                sb.Append(EscapeString(column.Comment));
+                sb.Append('\'');
+            }
+
+            if (!string.IsNullOrWhiteSpace(column.Codec))
+            {
+                sb.Append(" CODEC(");
+                sb.Append(column.Codec);
+                sb.Append(')');
+            }
+
+            if (!string.IsNullOrWhiteSpace(column.Ttl))
+            {
+                sb.Append(" TTL ");
+                sb.Append(column.Ttl);
+            }
 
             if (i < columns.Count - 1 || hasIndexes)
                 sb.Append(',');
@@ -92,7 +125,17 @@ public static class SqlGenerator
     public static string GenerateDropTable(TableSchema schema)
     {
         ArgumentNullException.ThrowIfNull(schema);
-        return $"DROP TABLE IF EXISTS {EscapeTableName(schema.FullTableName)}";
+
+        var sql = $"DROP TABLE IF EXISTS {EscapeTableName(schema.FullTableName)}";
+
+        if (!string.IsNullOrEmpty(schema.ClusterName))
+            sql += $" ON CLUSTER {EscapeIdentifier(schema.ClusterName)}";
+
+        // SYNC waits for Replicated tables to detach from Keeper before returning,
+        // preventing REPLICA_ALREADY_EXISTS on drop-then-recreate. No-op for non-Replicated engines.
+        sql += " SYNC";
+
+        return sql;
     }
 
     /// <summary>

@@ -20,7 +20,7 @@ Basic configuration:
 ```csharp
 Log.Logger = new LoggerConfiguration()
     .WriteTo.ClickHouse(
-        connectionString: "Host=localhost;Port=9000;Database=logs",
+        connectionString: "Host=localhost;Port=8123;Database=logs",
         tableName: "app_logs")
     .CreateLogger();
 
@@ -70,7 +70,7 @@ Use the schema builder to control which columns are created, their names, types,
 
 ```csharp
 .WriteTo.ClickHouse(
-    connectionString: "Host=localhost;Port=9000;Database=logs",
+    connectionString: "Host=localhost;Port=8123;Database=logs",
     configureSchema: schema => schema
         .WithTableName("custom_logs")
         .AddTimestampColumn("event_time", precision: 6)
@@ -97,6 +97,9 @@ Use the schema builder to control which columns are created, their names, types,
 | `AddPropertyColumn(property, type, ...)` | Single named property extracted into its own column. |
 | `AddLogEventColumn(name)` | Entire log event serialized as JSON. |
 | `AddColumn(columnWriter)` | Any custom `ColumnWriterBase` implementation. |
+| `OnCluster(clusterName)` | Adds `ON CLUSTER` clause for distributed DDL. |
+
+All column methods also accept optional `codec`, `defaultExpression`, `ttl`, and `comment` parameters for column-level DDL.
 
 ### Choosing ORDER BY
 
@@ -150,7 +153,7 @@ The sink uses Serilog's `BatchingOptions` to control buffer size and flush event
 
 ```csharp
 .WriteTo.ClickHouse(
-    connectionString: "Host=localhost;Port=9000;Database=logs",
+    connectionString: "Host=localhost;Port=8123;Database=logs",
     tableName: "app_logs",
     batchSizeLimit: 10_000,           // Max events per batch (default: 10,000)
     flushInterval: TimeSpan.FromSeconds(10),  // Time between flushes (default: 5s)
@@ -182,7 +185,7 @@ For complete control, pass a `ClickHouseSinkOptions` directly:
 ```csharp
 var options = new ClickHouseSinkOptions
 {
-    ConnectionString = "Host=localhost;Port=9000;Database=logs",
+    ConnectionString = "Host=localhost;Port=8123;Database=logs",
     Schema = DefaultSchema.Create("app_logs").Build(),
     TableCreation = new TableCreationOptions
     {
@@ -210,7 +213,7 @@ If you already have a `ClickHouseClient` or `ClickHouseDataSource` registered in
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddSingleton(_ =>
-    new ClickHouseDataSource("Host=localhost;Port=9000;Database=logs"));
+    new ClickHouseDataSource("Host=localhost;Port=8123;Database=logs"));
 
 builder.Host.UseSerilog((context, services, loggerConfiguration) =>
 {
@@ -246,7 +249,7 @@ loggerConfiguration.WriteTo.ClickHouse(options, dataSource); // .NET 7+
 The sink uses [ClickHouse.Driver](https://github.com/ClickHouse/clickhouse-cs) for the connection. Connection string format:
 
 ```
-Host=localhost;Port=9000;Database=logs;User=default;Password=
+Host=localhost;Port=8123;Database=logs;User=default;Password=
 ```
 
 ## Troubleshooting

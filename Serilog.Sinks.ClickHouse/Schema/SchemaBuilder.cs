@@ -9,6 +9,7 @@ public sealed class SchemaBuilder
 {
     private string? _database;
     private string _tableName = "logs";
+    private string? _clusterName;
     private readonly List<ColumnWriterBase> _columns = new();
     private readonly List<string> _indexes = new();
     private TableEngine _engine = new DefaultEngine();
@@ -33,6 +34,19 @@ public sealed class SchemaBuilder
     }
 
     /// <summary>
+    /// Sets the cluster name for distributed DDL (ON CLUSTER clause).
+    /// </summary>
+    /// <param name="clusterName">The ClickHouse cluster name.</param>
+    public SchemaBuilder OnCluster(string clusterName)
+    {
+        if (string.IsNullOrWhiteSpace(clusterName))
+            throw new ArgumentException("Cluster name cannot be empty.", nameof(clusterName));
+
+        _clusterName = clusterName;
+        return this;
+    }
+
+    /// <summary>
     /// Adds a column writer to the schema.
     /// </summary>
     public SchemaBuilder AddColumn(ColumnWriterBase column)
@@ -47,14 +61,28 @@ public sealed class SchemaBuilder
     /// <param name="name">Column name.</param>
     /// <param name="precision">Sub-second precision (0–9). Default produces <c>DateTime64(6) (microseconds)</c>.</param>
     /// <param name="useUtc">If true (default), stores <c>DateTimeOffset.UtcDateTime</c>; otherwise local time.</param>
-    public SchemaBuilder AddTimestampColumn(string name = "timestamp", int precision = 6, bool useUtc = true)
+    /// <param name="codec">Optional compression codec (e.g. "DoubleDelta, ZSTD").</param>
+    /// <param name="defaultExpression">Optional DEFAULT expression (e.g. "now()").</param>
+    /// <param name="ttl">Optional column-level TTL expression.</param>
+    /// <param name="comment">Optional column comment.</param>
+    public SchemaBuilder AddTimestampColumn(
+        string name = "timestamp",
+        int precision = 6,
+        bool useUtc = true,
+        string? codec = null,
+        string? defaultExpression = null,
+        string? ttl = null,
+        string? comment = null)
     {
         if (precision < 0)
             throw new ArgumentOutOfRangeException(nameof(precision), "Precision must be greater than or equal to zero.");
         if (precision > 9)
             throw new ArgumentOutOfRangeException(nameof(precision), "Precision must be smaller than or equal to 9.");
 
-        _columns.Add(new TimestampColumnWriter(name, $"DateTime64({precision})", useUtc));
+        _columns.Add(new TimestampColumnWriter(name, $"DateTime64({precision})", useUtc)
+        {
+            Codec = codec, Default = defaultExpression, Ttl = ttl, Comment = comment,
+        });
         return this;
     }
 
@@ -65,9 +93,22 @@ public sealed class SchemaBuilder
     /// </summary>
     /// <param name="name">Column name.</param>
     /// <param name="asString">If true (default), stores the level name (e.g. "Information"); otherwise the numeric value.</param>
-    public SchemaBuilder AddLevelColumn(string name = "level", bool asString = true)
+    /// <param name="codec">Optional compression codec (e.g. "ZSTD").</param>
+    /// <param name="defaultExpression">Optional DEFAULT expression.</param>
+    /// <param name="ttl">Optional column-level TTL expression.</param>
+    /// <param name="comment">Optional column comment.</param>
+    public SchemaBuilder AddLevelColumn(
+        string name = "level",
+        bool asString = true,
+        string? codec = null,
+        string? defaultExpression = null,
+        string? ttl = null,
+        string? comment = null)
     {
-        _columns.Add(new LevelColumnWriter(name, asString));
+        _columns.Add(new LevelColumnWriter(name, asString)
+        {
+            Codec = codec, Default = defaultExpression, Ttl = ttl, Comment = comment,
+        });
         return this;
     }
 
@@ -75,9 +116,21 @@ public sealed class SchemaBuilder
     /// Adds a rendered message column (property values substituted). ClickHouse type: <c>String</c>.
     /// </summary>
     /// <param name="name">Column name.</param>
-    public SchemaBuilder AddMessageColumn(string name = "message")
+    /// <param name="codec">Optional compression codec (e.g. "ZSTD").</param>
+    /// <param name="defaultExpression">Optional DEFAULT expression.</param>
+    /// <param name="ttl">Optional column-level TTL expression.</param>
+    /// <param name="comment">Optional column comment.</param>
+    public SchemaBuilder AddMessageColumn(
+        string name = "message",
+        string? codec = null,
+        string? defaultExpression = null,
+        string? ttl = null,
+        string? comment = null)
     {
-        _columns.Add(new RenderedMessageColumnWriter(name));
+        _columns.Add(new RenderedMessageColumnWriter(name)
+        {
+            Codec = codec, Default = defaultExpression, Ttl = ttl, Comment = comment,
+        });
         return this;
     }
 
@@ -85,9 +138,21 @@ public sealed class SchemaBuilder
     /// Adds a raw message template column (without property substitution). ClickHouse type: <c>String</c>.
     /// </summary>
     /// <param name="name">Column name.</param>
-    public SchemaBuilder AddMessageTemplateColumn(string name = "message_template")
+    /// <param name="codec">Optional compression codec (e.g. "ZSTD").</param>
+    /// <param name="defaultExpression">Optional DEFAULT expression.</param>
+    /// <param name="ttl">Optional column-level TTL expression.</param>
+    /// <param name="comment">Optional column comment.</param>
+    public SchemaBuilder AddMessageTemplateColumn(
+        string name = "message_template",
+        string? codec = null,
+        string? defaultExpression = null,
+        string? ttl = null,
+        string? comment = null)
     {
-        _columns.Add(new MessageTemplateColumnWriter(name));
+        _columns.Add(new MessageTemplateColumnWriter(name)
+        {
+            Codec = codec, Default = defaultExpression, Ttl = ttl, Comment = comment,
+        });
         return this;
     }
 
@@ -95,14 +160,30 @@ public sealed class SchemaBuilder
     /// Adds an exception column (<c>Exception.ToString()</c> or null). ClickHouse type: <c>Nullable(String)</c>.
     /// </summary>
     /// <param name="name">Column name.</param>
-    public SchemaBuilder AddExceptionColumn(string name = "exception")
+    /// <param name="codec">Optional compression codec (e.g. "ZSTD").</param>
+    /// <param name="defaultExpression">Optional DEFAULT expression.</param>
+    /// <param name="ttl">Optional column-level TTL expression.</param>
+    /// <param name="comment">Optional column comment.</param>
+    public SchemaBuilder AddExceptionColumn(
+        string name = "exception",
+        string? codec = null,
+        string? defaultExpression = null,
+        string? ttl = null,
+        string? comment = null)
     {
-        _columns.Add(new ExceptionColumnWriter(name));
+        _columns.Add(new ExceptionColumnWriter(name)
+        {
+            Codec = codec, Default = defaultExpression, Ttl = ttl, Comment = comment,
+        });
         return this;
     }
 
     /// <summary>
     /// Adds a properties column that captures all log event properties as JSON. ClickHouse type: <c>JSON</c>.
+    /// To set column-level DDL options (codec, default, ttl, comment), use the
+    /// <see cref="AddPropertiesColumn(string, string, string?, string?, string?, string?)"/> overload
+    /// with an explicit <c>columnType</c>, or <see cref="AddColumn"/> with a pre-built
+    /// <see cref="PropertiesColumnWriter"/>.
     /// </summary>
     /// <param name="name">Column name.</param>
     public SchemaBuilder AddPropertiesColumn(string name = "properties")
@@ -116,9 +197,22 @@ public sealed class SchemaBuilder
     /// </summary>
     /// <param name="name">Column name.</param>
     /// <param name="columnType">ClickHouse type string (e.g. "JSON(Application String, UserId Int64)").</param>
-    public SchemaBuilder AddPropertiesColumn(string name, string columnType)
+    /// <param name="codec">Optional compression codec (e.g. "ZSTD").</param>
+    /// <param name="defaultExpression">Optional DEFAULT expression.</param>
+    /// <param name="ttl">Optional column-level TTL expression.</param>
+    /// <param name="comment">Optional column comment.</param>
+    public SchemaBuilder AddPropertiesColumn(
+        string name,
+        string columnType,
+        string? codec = null,
+        string? defaultExpression = null,
+        string? ttl = null,
+        string? comment = null)
     {
-        _columns.Add(new PropertiesColumnWriter(name, columnType));
+        _columns.Add(new PropertiesColumnWriter(name, columnType)
+        {
+            Codec = codec, Default = defaultExpression, Ttl = ttl, Comment = comment,
+        });
         return this;
     }
 
@@ -126,9 +220,21 @@ public sealed class SchemaBuilder
     /// Adds a column for the entire log event serialized as JSON. ClickHouse type: <c>String</c>.
     /// </summary>
     /// <param name="name">Column name.</param>
-    public SchemaBuilder AddLogEventColumn(string name = "log_event")
+    /// <param name="codec">Optional compression codec (e.g. "ZSTD").</param>
+    /// <param name="defaultExpression">Optional DEFAULT expression.</param>
+    /// <param name="ttl">Optional column-level TTL expression.</param>
+    /// <param name="comment">Optional column comment.</param>
+    public SchemaBuilder AddLogEventColumn(
+        string name = "log_event",
+        string? codec = null,
+        string? defaultExpression = null,
+        string? ttl = null,
+        string? comment = null)
     {
-        _columns.Add(new LogEventColumnWriter(name));
+        _columns.Add(new LogEventColumnWriter(name)
+        {
+            Codec = codec, Default = defaultExpression, Ttl = ttl, Comment = comment,
+        });
         return this;
     }
 
@@ -142,13 +248,24 @@ public sealed class SchemaBuilder
     /// <param name="type">ClickHouse column type. Required for automatic table creation; optional if the table already exists.</param>
     /// <param name="columnName">Column name in ClickHouse. Defaults to <paramref name="propertyName"/>.</param>
     /// <param name="writeMethod">How to serialize the value (Raw CLR value, ToString, or JSON).</param>
+    /// <param name="codec">Optional compression codec (e.g. "ZSTD").</param>
+    /// <param name="defaultExpression">Optional DEFAULT expression.</param>
+    /// <param name="ttl">Optional column-level TTL expression.</param>
+    /// <param name="comment">Optional column comment.</param>
     public SchemaBuilder AddPropertyColumn(
         string propertyName,
         string? type = null,
         string? columnName = null,
-        PropertyWriteMethod writeMethod = PropertyWriteMethod.Raw)
+        PropertyWriteMethod writeMethod = PropertyWriteMethod.Raw,
+        string? codec = null,
+        string? defaultExpression = null,
+        string? ttl = null,
+        string? comment = null)
     {
-        _columns.Add(new SinglePropertyColumnWriter(propertyName, columnName, type, writeMethod));
+        _columns.Add(new SinglePropertyColumnWriter(propertyName, columnName, type, writeMethod)
+        {
+            Codec = codec, Default = defaultExpression, Ttl = ttl, Comment = comment,
+        });
         return this;
     }
 
@@ -176,7 +293,7 @@ public sealed class SchemaBuilder
         _engine = engine ?? throw new ArgumentNullException(nameof(engine));
         return this;
     }
-    
+
     /// <summary>
     /// Sets the table engine directly using a SQL expression.
     /// </summary>
@@ -210,6 +327,7 @@ public sealed class SchemaBuilder
         {
             Database = _database,
             TableName = _tableName,
+            ClusterName = _clusterName,
             Columns = _columns.ToList().AsReadOnly(),
             Indexes = _indexes.ToList().AsReadOnly(),
             Engine = _engine,

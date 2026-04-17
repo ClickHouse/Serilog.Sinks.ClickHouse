@@ -43,7 +43,7 @@ Basic configuration:
 ```csharp
 Log.Logger = new LoggerConfiguration()
     .WriteTo.ClickHouse(
-        connectionString: "Host=localhost;Port=9000;Database=logs",
+        connectionString: "Host=localhost;Port=8123;Database=logs",
         tableName: "app_logs")
     .CreateLogger();
 
@@ -93,7 +93,7 @@ Use the schema builder to control which columns are created, their names, types,
 
 ```csharp
 .WriteTo.ClickHouse(
-    connectionString: "Host=localhost;Port=9000;Database=logs",
+    connectionString: "Host=localhost;Port=8123;Database=logs",
     configureSchema: schema => schema
         .WithTableName("custom_logs")
         .AddTimestampColumn("event_time", precision: 6)
@@ -121,6 +121,20 @@ Use the schema builder to control which columns are created, their names, types,
 | `AddLogEventColumn(name)` | Entire log event serialized as JSON. |
 | `AddIndex(indexDefinition)` | Raw index clause included verbatim in CREATE TABLE. |
 | `AddColumn(columnWriter)` | Any custom `ColumnWriterBase` implementation. |
+| `OnCluster(clusterName)` | Adds `ON CLUSTER` clause for distributed DDL. |
+
+All column methods also accept optional `codec`, `defaultExpression`, `ttl`, and `comment` parameters for column-level DDL.
+
+### Column Options
+
+Each column method accepts optional DDL modifiers: `codec`, `defaultExpression`, `ttl`, and `comment`. These map directly to the ClickHouse column definition clauses:
+
+| Option | Column clause | Example |
+|--------|--------------|---------|
+| `codec` | `CODEC(...)` | `"ZSTD"`, `"FSST, ZSTD"`, `"DoubleDelta, ZSTD"` |
+| `defaultExpression` | `DEFAULT expr` | `"now()"`, `"'unknown'"`, `"0"` |
+| `ttl` | `TTL expr` | `"timestamp + INTERVAL 30 DAY"` |
+| `comment` | `COMMENT 'text'` | `"Event timestamp in UTC"` |
 
 ### Adding Indexes
 
@@ -128,7 +142,7 @@ Use `AddIndex` to add [ClickHouse data-skipping indexes](https://clickhouse.com/
 
 ```csharp
 .WriteTo.ClickHouse(
-    connectionString: "Host=localhost;Port=9000;Database=logs",
+    connectionString: "Host=localhost;Port=8123;Database=logs",
     configureSchema: schema => schema
         .WithTableName("app_logs")
         .AddTimestampColumn()
@@ -138,6 +152,24 @@ Use `AddIndex` to add [ClickHouse data-skipping indexes](https://clickhouse.com/
         .AddIndex("INDEX idx_message message TYPE tokenbf_v1(32768, 3, 0) GRANULARITY 1")
         .WithEngine("ENGINE = MergeTree() ORDER BY (timestamp)"))
 ```
+
+### Cluster Support (ON CLUSTER)
+
+For distributed ClickHouse deployments, use `OnCluster()` to include an `ON CLUSTER` clause in DDL statements:
+
+```csharp
+.WriteTo.ClickHouse(
+    connectionString: "Host=localhost;Port=8123;Database=logs",
+    configureSchema: schema => schema
+        .WithTableName("app_logs")
+        .OnCluster("my_cluster")
+        .AddTimestampColumn()
+        .AddLevelColumn()
+        .AddMessageColumn()
+        .WithEngine("ENGINE = ReplicatedMergeTree('/clickhouse/tables/{shard}/app_logs', '{replica}') ORDER BY (timestamp)"))
+```
+
+This generates `CREATE TABLE IF NOT EXISTS app_logs ON CLUSTER my_cluster (...)`. The `ON CLUSTER` clause is also included in `DROP TABLE` when using `TableCreationMode.DropAndRecreate`.
 
 ### Choosing ORDER BY
 
@@ -191,7 +223,7 @@ The sink uses Serilog's `BatchingOptions` to control buffer size and flush event
 
 ```csharp
 .WriteTo.ClickHouse(
-    connectionString: "Host=localhost;Port=9000;Database=logs",
+    connectionString: "Host=localhost;Port=8123;Database=logs",
     tableName: "app_logs",
     batchSizeLimit: 10_000,           // Max events per batch (default: 10,000)
     flushInterval: TimeSpan.FromSeconds(10),  // Time between flushes (default: 5s)
@@ -223,7 +255,7 @@ For complete control, pass a `ClickHouseSinkOptions` directly:
 ```csharp
 var options = new ClickHouseSinkOptions
 {
-    ConnectionString = "Host=localhost;Port=9000;Database=logs",
+    ConnectionString = "Host=localhost;Port=8123;Database=logs",
     Schema = DefaultSchema.Create("app_logs").Build(),
     TableCreation = new TableCreationOptions
     {
@@ -251,7 +283,7 @@ If you already have a `ClickHouseClient` or `ClickHouseDataSource` registered in
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddSingleton(_ =>
-    new ClickHouseDataSource("Host=localhost;Port=9000;Database=logs"));
+    new ClickHouseDataSource("Host=localhost;Port=8123;Database=logs"));
 
 builder.Host.UseSerilog((context, services, loggerConfiguration) =>
 {
@@ -287,7 +319,7 @@ loggerConfiguration.WriteTo.ClickHouse(options, dataSource); // .NET 7+
 The sink uses [ClickHouse.Driver](https://github.com/ClickHouse/clickhouse-cs) for the connection. Connection string format:
 
 ```
-Host=localhost;Port=9000;Database=logs;User=default;Password=
+Host=localhost;Port=8123;Database=logs;User=default;Password=
 ```
 
 ## Troubleshooting

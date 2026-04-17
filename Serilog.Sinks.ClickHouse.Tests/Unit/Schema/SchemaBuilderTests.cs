@@ -223,4 +223,125 @@ public class SchemaBuilderTests
         Assert.Throws<ArgumentException>(() => new SchemaBuilder()
             .AddIndex("   "));
     }
+
+    [Test]
+    public void OnCluster_SetsClusterName()
+    {
+        var schema = new SchemaBuilder()
+            .WithTableName("logs")
+            .OnCluster("my_cluster")
+            .AddTimestampColumn()
+            .Build();
+
+        Assert.That(schema.ClusterName, Is.EqualTo("my_cluster"));
+    }
+
+    [Test]
+    public void OnCluster_ThrowsException_WhenEmpty()
+    {
+        Assert.Throws<ArgumentException>(() => new SchemaBuilder()
+            .OnCluster(""));
+    }
+
+    [Test]
+    public void OnCluster_ThrowsException_WhenWhitespace()
+    {
+        Assert.Throws<ArgumentException>(() => new SchemaBuilder()
+            .OnCluster("   "));
+    }
+
+    [Test]
+    public void Build_ClusterNameIsNull_WhenNotSet()
+    {
+        var schema = new SchemaBuilder()
+            .WithTableName("logs")
+            .AddTimestampColumn()
+            .Build();
+
+        Assert.That(schema.ClusterName, Is.Null);
+    }
+
+    [Test]
+    public void AddTimestampColumn_SetsCodec()
+    {
+        var schema = new SchemaBuilder()
+            .WithTableName("logs")
+            .AddTimestampColumn(codec: "DoubleDelta, ZSTD")
+            .Build();
+
+        Assert.That(schema.Columns.First().Codec, Is.EqualTo("DoubleDelta, ZSTD"));
+    }
+
+    [Test]
+    public void AddTimestampColumn_SetsAllColumnOptions()
+    {
+        var schema = new SchemaBuilder()
+            .WithTableName("logs")
+            .AddTimestampColumn(codec: "ZSTD", defaultExpression: "now()", ttl: "timestamp + INTERVAL 30 DAY", comment: "Event time")
+            .Build();
+
+        var column = schema.Columns.First();
+        Assert.That(column.Codec, Is.EqualTo("ZSTD"));
+        Assert.That(column.Default, Is.EqualTo("now()"));
+        Assert.That(column.Ttl, Is.EqualTo("timestamp + INTERVAL 30 DAY"));
+        Assert.That(column.Comment, Is.EqualTo("Event time"));
+    }
+
+    [Test]
+    public void AddMessageColumn_SetsCodec()
+    {
+        var schema = new SchemaBuilder()
+            .WithTableName("logs")
+            .AddMessageColumn(codec: "ZSTD")
+            .Build();
+
+        Assert.That(schema.Columns.First().Codec, Is.EqualTo("ZSTD"));
+    }
+
+    [Test]
+    public void AddPropertyColumn_SetsCodec()
+    {
+        var schema = new SchemaBuilder()
+            .WithTableName("logs")
+            .AddPropertyColumn("RequestPath", type: "String", codec: "FSST, ZSTD")
+            .Build();
+
+        Assert.That(schema.Columns.First().Codec, Is.EqualTo("FSST, ZSTD"));
+    }
+
+    [Test]
+    public void AddPropertiesColumn_WithColumnType_SetsCodec()
+    {
+        var schema = new SchemaBuilder()
+            .WithTableName("logs")
+            .AddPropertiesColumn("properties", "JSON(UserId Int64)", codec: "ZSTD")
+            .Build();
+
+        var column = schema.Columns.First();
+        Assert.That(column.ColumnType, Is.EqualTo("JSON(UserId Int64)"));
+        Assert.That(column.Codec, Is.EqualTo("ZSTD"));
+    }
+
+    [Test]
+    public void AddColumn_PreservesColumnOptions()
+    {
+        var writer = new TimestampColumnWriter("ts")
+        {
+            Codec = "ZSTD",
+            Default = "now()",
+            Ttl = "ts + INTERVAL 7 DAY",
+            Comment = "Timestamp",
+        };
+
+        var schema = new SchemaBuilder()
+            .WithTableName("logs")
+            .AddColumn(writer)
+            .Build();
+
+        var column = schema.Columns.First();
+        Assert.That(column.Codec, Is.EqualTo("ZSTD"));
+        Assert.That(column.Default, Is.EqualTo("now()"));
+        Assert.That(column.Ttl, Is.EqualTo("ts + INTERVAL 7 DAY"));
+        Assert.That(column.Comment, Is.EqualTo("Timestamp"));
+    }
 }

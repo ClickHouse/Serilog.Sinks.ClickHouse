@@ -1,0 +1,37 @@
+services:
+  clickhouse1:
+    image: clickhouse/clickhouse-server:${CLICKHOUSE_VERSION:-latest}
+    hostname: clickhouse1
+    environment:
+      CLICKHOUSE_SKIP_USER_SETUP: "1"
+    ports:
+      - "8124:8123"
+    volumes:
+      - .docker/clickhouse/cluster/cluster.xml:/etc/clickhouse-server/config.d/cluster.xml
+      - .docker/clickhouse/cluster/node1.xml:/etc/clickhouse-server/config.d/node.xml
+      - .docker/clickhouse/users.xml:/etc/clickhouse-server/users.xml
+    healthcheck:
+      test: ["CMD", "clickhouse-client", "--query", "SELECT 1"]
+      interval: 2s
+      timeout: 5s
+      retries: 20
+
+  clickhouse2:
+    image: clickhouse/clickhouse-server:${CLICKHOUSE_VERSION:-latest}
+    hostname: clickhouse2
+    environment:
+      CLICKHOUSE_SKIP_USER_SETUP: "1"
+    depends_on:
+      clickhouse1:
+        condition: service_healthy
+    ports:
+      - "8125:8123"
+    volumes:
+      - .docker/clickhouse/cluster/cluster.xml:/etc/clickhouse-server/config.d/cluster.xml
+      - .docker/clickhouse/cluster/node2.xml:/etc/clickhouse-server/config.d/node.xml
+      - .docker/clickhouse/users.xml:/etc/clickhouse-server/users.xml
+    healthcheck:
+      test: ["CMD", "clickhouse-client", "--query", "SELECT 1"]
+      interval: 2s
+      timeout: 5s
+      retries: 20

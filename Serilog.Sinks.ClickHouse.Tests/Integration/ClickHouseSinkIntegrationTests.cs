@@ -752,7 +752,192 @@ public class ClickHouseSinkIntegrationTests
         Assert.That(parsed.RootElement.TryGetProperty("Level", out _), Is.True);
     }
 
-    // ── Column writer error isolation ─────────────────────────────
+    [Test]
+    public async Task EmitBatchAsync_WithColumnCodec_CreatesTableWithCodecs()
+    {
+        var table = UniqueTable("codec");
+        var schema = new SchemaBuilder()
+            .WithTableName(table)
+            .AddTimestampColumn(codec: "DoubleDelta, ZSTD")
+            .AddLevelColumn(codec: "ZSTD")
+            .AddMessageColumn(codec: "ZSTD")
+            .WithEngine(new CustomEngine("ENGINE = MergeTree() ORDER BY (timestamp)"))
+            .Build();
+
+        var options = new ClickHouseSinkOptions
+        {
+            ConnectionString = ConnectionString,
+            Schema = schema,
+        };
+
+        using var sink = new ClickHouseSink(options);
+        await sink.EmitBatchAsync(new[] { new LogEventBuilder().WithMessage("Codec test").Build() });
+
+        // Verify the table was created with codecs
+        using var client = new ClickHouseClient(ConnectionString);
+        var reader = await client.ExecuteReaderAsync(
+            $"SELECT create_table_query FROM system.tables WHERE name = '{table}' AND database = currentDatabase()");
+
+        Assert.That(reader.Read(), Is.True);
+        var createQuery = reader.GetString(0);
+        Assert.That(createQuery, Does.Contain("CODEC(DoubleDelta, ZSTD"));
+        Assert.That(createQuery, Does.Contain("CODEC(ZSTD"));
+    }
+
+    [Test]
+    public async Task EmitBatchAsync_WithColumnDefault_AppliesDefault()
+    {
+        var table = UniqueTable("coldefault");
+        var schema = new SchemaBuilder()
+            .WithTableName(table)
+            .AddTimestampColumn()
+            .AddMessageColumn()
+            .AddPropertyColumn("Source", type: "String", defaultExpression: "'unknown'")
+            .Build();
+
+        var options = new ClickHouseSinkOptions
+        {
+            ConnectionString = ConnectionString,
+            Schema = schema,
+        };
+
+        using var sink = new ClickHouseSink(options);
+
+        // Event without the Source property — should get default 'unknown'
+        await sink.EmitBatchAsync(new[] { new LogEventBuilder().WithMessage("No source").Build() });
+
+        using var client = new ClickHouseClient(ConnectionString);
+        var reader = await client.ExecuteReaderAsync(
+            $"SELECT Source FROM {SqlGenerator.EscapeTableName(table)} LIMIT 1");
+
+        Assert.That(reader.Read(), Is.True);
+        Assert.That(reader.GetString(0), Is.EqualTo("unknown"));
+    }
+
+    [Test]
+    public async Task EmitBatchAsync_WithColumnComment_CreatesTableWithComments()
+    {
+        var table = UniqueTable("colcomment");
+        var schema = new SchemaBuilder()
+            .WithTableName(table)
+            .AddTimestampColumn(comment: "Event timestamp in UTC")
+            .AddMessageColumn(comment: "Rendered log message")
+            .WithEngine(new CustomEngine("ENGINE = MergeTree() ORDER BY (timestamp)"))
+            .Build();
+
+        var options = new ClickHouseSinkOptions
+        {
+            ConnectionString = ConnectionString,
+            Schema = schema,
+        };
+
+        using var sink = new ClickHouseSink(options);
+        await sink.EmitBatchAsync(new[] { new LogEventBuilder().WithMessage("Comment test").Build() });
+
+        // Verify column comments in system.columns
+        using var client = new ClickHouseClient(ConnectionString);
+        var reader = await client.ExecuteReaderAsync(
+            $"SELECT name, comment FROM system.columns WHERE table = '{table}' AND database = currentDatabase() AND comment != '' ORDER BY name");
+
+        var comments = new Dictionary<string, string>();
+        while (reader.Read())
+        {
+            comments[reader.GetString(0)] = reader.GetString(1);
+        }
+
+        Assert.That(comments["timestamp"], Is.EqualTo("Event timestamp in UTC"));
+        Assert.That(comments["message"], Is.EqualTo("Rendered log message"));
+    }
+
+    [Test]
+    public async Task EmitBatchAsync_WithAllColumnDdlOptions_CreatesTableWithCodecDefaultTtlComment()
+    {
+        var table = UniqueTable("all_ddl");
+        var schema = new SchemaBuilder()
+            .WithTableName(table)
+            .AddTimestampColumn(
+                codec: "DoubleDelta, ZSTD",
+                comment: "Event timestamp in UTC")
+            .AddLevelColumn(
+                codec: "ZSTD",
+                defaultExpression: "'Information'",
+                comment: "Log severity level")
+            .AddMessageColumn(
+                codec: "ZSTD",
+                ttl: "timestamp + INTERVAL 30 DAY",
+                comment: "Rendered log message")
+            .AddPropertyColumn("Source", type: "String",
+                defaultExpression: "'unknown'",
+                codec: "ZSTD",
+                ttl: "timestamp + INTERVAL 90 DAY",
+                comment: "Event source application")
+            .WithEngine(new CustomEngine("ENGINE = MergeTree() ORDER BY (timestamp)"))
+            .Build();
+
+        var options = new ClickHouseSinkOptions
+        {
+            ConnectionString = ConnectionString,
+            Schema = schema,
+        };
+
+        using var sink = new ClickHouseSink(options);
+
+        // Emit an event WITH the Source property
+        await sink.EmitBatchAsync(new[]
+        {
+            new LogEventBuilder().WithMessage("With source").WithProperty("Source", "MyApp").Build(),
+        });
+
+        // Emit an event WITHOUT Source — should get the DEFAULT 'unknown'
+        await sink.EmitBatchAsync(new[]
+        {
+            new LogEventBuilder().WithMessage("No source").Build(),
+        });
+
+        using var client = new ClickHouseClient(ConnectionString);
+
+        // ── Verify codecs & TTL in CREATE TABLE DDL ──────────────────
+        var ddlReader = await client.ExecuteReaderAsync(
+            $"SELECT create_table_query FROM system.tables WHERE name = '{table}' AND database = currentDatabase()");
+        Assert.That(ddlReader.Read(), Is.True);
+        var ddl = ddlReader.GetString(0);
+
+        Assert.That(ddl, Does.Contain("CODEC(DoubleDelta, ZSTD"), "Timestamp codec missing");
+        Assert.That(ddl, Does.Contain("CODEC(ZSTD"), "Level/message codec missing");
+        Assert.That(ddl, Does.Contain("TTL timestamp + toIntervalDay(30)").Or.Contain("TTL `timestamp` + toIntervalDay(30)"),
+            "Message TTL missing");
+        Assert.That(ddl, Does.Contain("TTL timestamp + toIntervalDay(90)").Or.Contain("TTL `timestamp` + toIntervalDay(90)"),
+            "Source TTL missing");
+
+        // ── Verify column comments ───────────────────────────────────
+        var commentReader = await client.ExecuteReaderAsync(
+            $"SELECT name, comment FROM system.columns WHERE table = '{table}' AND database = currentDatabase() AND comment != '' ORDER BY name");
+
+        var comments = new Dictionary<string, string>();
+        while (commentReader.Read())
+        {
+            comments[commentReader.GetString(0)] = commentReader.GetString(1);
+        }
+
+        Assert.That(comments["timestamp"], Is.EqualTo("Event timestamp in UTC"));
+        Assert.That(comments["level"], Is.EqualTo("Log severity level"));
+        Assert.That(comments["message"], Is.EqualTo("Rendered log message"));
+        Assert.That(comments["Source"], Is.EqualTo("Event source application"));
+
+        // ── Verify default applied for missing property ──────────────
+        var dataReader = await client.ExecuteReaderAsync(
+            $"SELECT message, Source FROM {SqlGenerator.EscapeTableName(table)} ORDER BY message");
+
+        var rows = new List<(string Message, string Source)>();
+        while (dataReader.Read())
+        {
+            rows.Add((dataReader.GetString(0), dataReader.GetString(1)));
+        }
+
+        Assert.That(rows, Has.Count.EqualTo(2));
+        Assert.That(rows[0].Source, Is.EqualTo("unknown"), "DEFAULT not applied for missing property");
+        Assert.That(rows[1].Source, Is.EqualTo("MyApp"), "Explicit property value not stored");
+    }
 
     /// <summary>
     /// A column writer that always throws, used to test per-column error isolation.
