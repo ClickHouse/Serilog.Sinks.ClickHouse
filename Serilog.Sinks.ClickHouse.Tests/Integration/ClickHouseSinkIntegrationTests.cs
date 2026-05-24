@@ -983,4 +983,107 @@ public class ClickHouseSinkIntegrationTests
         Assert.That(reader.GetString(0), Is.EqualTo("Should still be written"));
         Assert.That(reader.IsDBNull(1), Is.True);
     }
+    
+    [Test]
+    public async Task EmitBatchAsync_WritesGuidFromCSharp_WhenGeneratorIsCSharpGuid()
+    {
+        var table = UniqueTable("guid_csharp");
+        var options = new ClickHouseSinkOptions
+        {
+            ConnectionString = ConnectionString,
+            Schema = new SchemaBuilder()
+                .WithTableName(table)
+                .AddLogIdColumn("log_id", asString: false, generator: LogIdGenerator.CSharpGuid)
+                .AddTimestampColumn()
+                .Build(),
+            TableCreation = new TableCreationOptions { Mode = TableCreationMode.CreateIfNotExists },
+        };
+
+        using var sink = new ClickHouseSink(options);
+        var logEvent = new LogEventBuilder().WithMessage("Test C# Guid").Build();
+
+        await sink.EmitBatchAsync([logEvent]);
+        
+        using var client = new ClickHouseClient(ConnectionString);
+        var reader = await client.ExecuteReaderAsync($"SELECT log_id FROM {SqlGenerator.EscapeTableName(table)} LIMIT 1");
+        
+        Assert.That(reader.Read(), Is.True);
+        var storedGuid = reader.GetGuid(0);
+        
+        Assert.That(storedGuid, Is.Not.EqualTo(Guid.Empty));
+    }
+    
+    [Test]
+    public async Task EmitBatchAsync_AllowsClickHouseToGenerateUuidV4_WithCorrectVersion()
+    {
+        var table = UniqueTable("guid_ch_v4");
+        var options = new ClickHouseSinkOptions
+        {
+            ConnectionString = ConnectionString,
+            Schema = new SchemaBuilder()
+                .WithTableName(table)
+                .AddLogIdColumn("log_id", asString: false, generator: LogIdGenerator.ClickHouseUUIDv4)
+                .AddTimestampColumn()
+                .Build(),
+            TableCreation = new TableCreationOptions { Mode = TableCreationMode.CreateIfNotExists },
+        };
+
+        using var sink = new ClickHouseSink(options);
+        var logEvent = new LogEventBuilder().WithMessage("Test ClickHouse UUIDv4").Build();
+        
+        Assert.DoesNotThrowAsync(() => sink.EmitBatchAsync([logEvent]));
+
+        using var client = new ClickHouseClient(ConnectionString);
+        var reader = await client.ExecuteReaderAsync($"SELECT log_id FROM {SqlGenerator.EscapeTableName(table)} LIMIT 1");
+        
+        Assert.That(reader.Read(), Is.True);
+        var storedGuid = reader.GetGuid(0);
+        
+        Assert.That(storedGuid, Is.Not.EqualTo(Guid.Empty));
+        
+#if NET9_0_OR_GREATER
+        Assert.That(storedGuid.Version, Is.EqualTo(4));
+#else
+        var bytes = storedGuid.ToByteArray();
+        var version = (bytes[7] >> 4) & 0x0F;
+        Assert.That(version, Is.EqualTo(4));
+#endif
+    }
+
+    [Test]
+    public async Task EmitBatchAsync_AllowsClickHouseToGenerateUuidV7_WhenSkipWriteIsTrue()
+    {
+        var table = UniqueTable("guid_ch_v7");
+        var options = new ClickHouseSinkOptions
+        {
+            ConnectionString = ConnectionString,
+            Schema = new SchemaBuilder()
+                .WithTableName(table)
+                .AddLogIdColumn("log_id", asString: false, generator: LogIdGenerator.ClickHouseUUIDv7)
+                .AddTimestampColumn()
+                .Build(),
+            TableCreation = new TableCreationOptions { Mode = TableCreationMode.CreateIfNotExists },
+        };
+
+        using var sink = new ClickHouseSink(options);
+        var logEvent = new LogEventBuilder().WithMessage("Test ClickHouse UUIDv7").Build();
+        
+        Assert.DoesNotThrowAsync(() => sink.EmitBatchAsync([logEvent]));
+        
+        using var client = new ClickHouseClient(ConnectionString);
+        var reader = await client.ExecuteReaderAsync($"SELECT log_id FROM {SqlGenerator.EscapeTableName(table)} LIMIT 1");
+        
+        Assert.That(reader.Read(), Is.True);
+        var storedGuid = reader.GetGuid(0);
+        
+        Assert.That(storedGuid, Is.Not.EqualTo(Guid.Empty));
+        
+#if NET9_0_OR_GREATER
+        Assert.That(storedGuid.Version, Is.EqualTo(7));
+#else
+        var bytes = storedGuid.ToByteArray();
+        var version = (bytes[7] >> 4) & 0x0F;
+        Assert.That(version, Is.EqualTo(7));
+#endif
+    }
 }

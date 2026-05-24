@@ -1,3 +1,11 @@
+## v2.3.0 (Unreleased)
+
+- `SchemaBuilder.AddLogIdColumn()` — adds a unique identifier column for log entries with support for multiple generation strategies:
+    - `CSharpGuid`: generates a standard `Guid.NewGuid()` in C# code (compatible with all ClickHouse versions).
+    - `ClickHouseUUIDv4`: automatically generates a random UUID on the database side using ClickHouse `generateUUIDv4()`.
+    - `ClickHouseUUIDv7`: automatically generates a time-sorted UUIDv7 on the database side using ClickHouse `generateUUIDv7()` (requires ClickHouse 24.1+).
+- Support for DB-generated columns — the sink now automatically excludes columns marked with `SkipWrite` from the `INSERT` statement, allowing ClickHouse to evaluate server-side `DEFAULT` expressions correctly without throwing serialization errors.
+
 ## v2.2.0
 
 - Column-level DDL options: `codec`, `defaultExpression`, `ttl`, and `comment` on all `Add*Column` builder methods, maps to ClickHouse `CODEC(...)`, `DEFAULT expr`, `TTL expr`, and `COMMENT 'text'` clauses

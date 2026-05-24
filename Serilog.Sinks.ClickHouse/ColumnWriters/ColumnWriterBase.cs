@@ -54,6 +54,12 @@ public abstract class ColumnWriterBase
     public string? Comment { get; set; }
 
     /// <summary>
+    /// Gets or sets a value indicating whether this column should be excluded from the <c>INSERT</c> statement.
+    /// Useful for columns whose values are generated automatically on the database side via <c>DEFAULT</c> expressions.
+    /// </summary>
+    public bool SkipWrite { get; set; }
+    
+    /// <summary>
     /// Initializes a new instance of the <see cref="ColumnWriterBase"/> class.
     /// </summary>
     /// <param name="columnName">The name of the column in the ClickHouse table.</param>
