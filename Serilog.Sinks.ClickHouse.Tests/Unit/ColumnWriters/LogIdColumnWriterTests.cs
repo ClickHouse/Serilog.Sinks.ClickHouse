@@ -8,10 +8,10 @@ namespace Serilog.Sinks.ClickHouse.Tests.Unit.ColumnWriters;
 public class LogIdColumnWriterTests
 {
     [Test]
-    public void Constructor_DefaultColumnNameIsGuid()
+    public void Constructor_DefaultColumnNameIsLogId()
     {
         var writer = new LogIdColumnWriter();
-        Assert.That(writer.ColumnName, Is.EqualTo("guid"));
+        Assert.That(writer.ColumnName, Is.EqualTo("log_id"));
     }
 
     [Test]

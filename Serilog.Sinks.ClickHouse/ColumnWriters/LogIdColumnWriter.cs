@@ -31,15 +31,15 @@ public enum LogIdGenerator
 
 /// <summary>
 /// Writes the log id.
-/// If asString is true (default), uses String. Otherwise uses UUID.
-/// If columnType is passed, it overrides the above.
+/// If <c>asString</c> is true, uses String. otherwise uses UUID (default).
+/// If <c>columnType</c> is passed, it overrides the above.
 /// </summary>
 public class LogIdColumnWriter : ColumnWriterBase
 {
     private readonly bool _asString;
 
     /// <inheritdoc />
-    public LogIdColumnWriter(string columnName = "guid", bool asString = false, string? columnType = null) 
+    public LogIdColumnWriter(string columnName = "log_id", bool asString = false, string? columnType = null) 
         : base(columnName, columnType ?? (asString ? "String" : "UUID"))
     {
         _asString = asString;

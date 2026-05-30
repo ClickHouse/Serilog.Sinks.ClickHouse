@@ -64,7 +64,7 @@ public sealed class SchemaBuilder
     /// <param name="codec">Optional compression codec (e.g. "ZSTD").</param>
     /// <param name="ttl">Optional column-level TTL expression.</param>
     /// <param name="comment">Optional column comment.</param>
-    public SchemaBuilder AddLogIdColumn (
+    public SchemaBuilder AddLogIdColumn(
         string name = "log_id",
         bool asString = false,
         LogIdGenerator generator = LogIdGenerator.CSharpGuid,
