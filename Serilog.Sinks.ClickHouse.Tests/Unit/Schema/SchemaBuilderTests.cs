@@ -344,4 +344,86 @@ public class SchemaBuilderTests
         Assert.That(column.Ttl, Is.EqualTo("ts + INTERVAL 7 DAY"));
         Assert.That(column.Comment, Is.EqualTo("Timestamp"));
     }
+    
+    [Test]
+    public void AddLogIdColumn_WithCSharpGuid_AddsLogIdWriterWithCorrectDefaults()
+    {
+        var schema = new SchemaBuilder()
+            .WithTableName("logs")
+            .AddLogIdColumn("log_id", asString: false, generator: LogIdGenerator.CSharpGuid)
+            .Build();
+
+        Assert.That(schema.Columns, Has.Count.EqualTo(1));
+        var column = schema.Columns.First();
+        
+        Assert.That(column, Is.InstanceOf<LogIdColumnWriter>());
+        Assert.That(column.ColumnName, Is.EqualTo("log_id"));
+        Assert.That(column.ColumnType, Is.EqualTo("UUID"));
+        Assert.That(column.Default, Is.Null);
+    }
+
+    [Test]
+    public void AddLogIdColumn_AsString_SetsColumnTypeToString()
+    {
+        var schema = new SchemaBuilder()
+            .WithTableName("logs")
+            .AddLogIdColumn("log_id", asString: true, generator: LogIdGenerator.CSharpGuid)
+            .Build();
+
+        var column = schema.Columns.First();
+        Assert.That(column.ColumnType, Is.EqualTo("String"));
+    }
+
+    [Test]
+    public void AddLogIdColumn_WithClickHouseUUIDv4_SetsDefaultExpression()
+    {
+        var schema = new SchemaBuilder()
+            .WithTableName("logs")
+            .AddLogIdColumn("log_id", asString: false, generator: LogIdGenerator.ClickHouseUUIDv4)
+            .Build();
+
+        var column = schema.Columns.First();
+        Assert.That(column.ColumnType, Is.EqualTo("UUID"));
+        Assert.That(column.Default, Is.EqualTo("generateUUIDv4()"));
+    }
+
+    [Test]
+    public void AddLogIdColumn_WithClickHouseUUIDv4AndAsString_SetsStringDefaultExpression()
+    {
+        var schema = new SchemaBuilder()
+            .WithTableName("logs")
+            .AddLogIdColumn("log_id", asString: true, generator: LogIdGenerator.ClickHouseUUIDv4)
+            .Build();
+
+        var column = schema.Columns.First();
+        Assert.That(column.ColumnType, Is.EqualTo("String"));
+        Assert.That(column.Default, Is.EqualTo("toString(generateUUIDv4())"));
+    }
+
+    [Test]
+    public void AddLogIdColumn_WithClickHouseUUIDv7_SetsDefaultExpression()
+    {
+        var schema = new SchemaBuilder()
+            .WithTableName("logs")
+            .AddLogIdColumn("log_id", asString: false, generator: LogIdGenerator.ClickHouseUUIDv7)
+            .Build();
+
+        var column = schema.Columns.First();
+        Assert.That(column.ColumnType, Is.EqualTo("UUID"));
+        Assert.That(column.Default, Is.EqualTo("generateUUIDv7()"));
+    }
+
+    [Test]
+    public void AddLogIdColumn_SetsOptionalParameters()
+    {
+        var schema = new SchemaBuilder()
+            .WithTableName("logs")
+            .AddLogIdColumn("log_id", codec: "ZSTD(1)", ttl: "timestamp + INTERVAL 1 DAY", comment: "Unique log id")
+            .Build();
+
+        var column = schema.Columns.First();
+        Assert.That(column.Codec, Is.EqualTo("ZSTD(1)"));
+        Assert.That(column.Ttl, Is.EqualTo("timestamp + INTERVAL 1 DAY"));
+        Assert.That(column.Comment, Is.EqualTo("Unique log id"));
+    }
 }

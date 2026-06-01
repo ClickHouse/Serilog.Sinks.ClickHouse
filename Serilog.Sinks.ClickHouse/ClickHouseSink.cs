@@ -7,6 +7,7 @@ using Serilog.Core;
 using Serilog.Debugging;
 using Serilog.Events;
 using Serilog.Sinks.ClickHouse.Client;
+using Serilog.Sinks.ClickHouse.ColumnWriters;
 using Serilog.Sinks.ClickHouse.Configuration;
 using Serilog.Sinks.ClickHouse.Schema;
 
@@ -98,12 +99,16 @@ public sealed class ClickHouseSink : IBatchedLogEventSink, IDisposable
                 _tableCreated = true;
             }
 
-            // Transform log events to row arrays using column writers
-            var columns = _options.Schema!.Columns.Select(c => c.ColumnName);
-            var rows = batch.Select(TransformLogEvent);
+            // Filter columns that should be written to the database (excludes DB-generated columns)
+            var writableColumns = _options.Schema!.Columns
+                .Where(c => !c.SkipWrite)
+                .ToList();
+            
+            // Transform log events to row arrays using filtered column writers
+            var columns = writableColumns.Select(c => c.ColumnName);
+            var rows = batch.Select(logEvent => TransformLogEvent(logEvent, writableColumns));
 
             // Bulk insert
-            
             await _client.InsertBinaryAsync(
                 SqlGenerator.EscapeTableName(_options.Schema!.FullTableName),
                 columns,
@@ -149,20 +154,19 @@ public sealed class ClickHouseSink : IBatchedLogEventSink, IDisposable
         }
     }
 
-    private object[] TransformLogEvent(LogEvent logEvent)
+    private object[] TransformLogEvent(LogEvent logEvent, List<ColumnWriterBase> writableColumns)
     {
-        var columns = _options.Schema!.Columns;
-        var values = new object[columns.Count];
+        var values = new object[writableColumns.Count];
 
-        for (var i = 0; i < columns.Count; i++)
+        for (var i = 0; i < writableColumns.Count; i++)
         {
             try
             {
-                values[i] = columns[i].GetValue(logEvent, _formatProvider) ?? DBNull.Value;
+                values[i] = writableColumns[i].GetValue(logEvent, _formatProvider) ?? DBNull.Value;
             }
             catch (Exception ex)
             {
-                SelfLog.WriteLine("Error extracting column '{0}': {1}", columns[i].ColumnName, ex.Message);
+                SelfLog.WriteLine("Error extracting column '{0}': {1}", writableColumns[i].ColumnName, ex.Message);
                 values[i] = DBDefault.Value;
             }
         }

@@ -56,6 +56,40 @@ public sealed class SchemaBuilder
     }
 
     /// <summary>
+    /// Adds a log id column.
+    /// </summary>
+    /// <param name="name">Column name.</param>
+    /// <param name="asString">If true, uses String. otherwise uses UUID.</param>
+    /// <param name="generator">The strategy to generate unique identifiers.</param>
+    /// <param name="codec">Optional compression codec (e.g. "ZSTD").</param>
+    /// <param name="ttl">Optional column-level TTL expression.</param>
+    /// <param name="comment">Optional column comment.</param>
+    public SchemaBuilder AddLogIdColumn(
+        string name = "log_id",
+        bool asString = false,
+        LogIdGenerator generator = LogIdGenerator.CSharpGuid,
+        string? codec = null,
+        string? ttl = null,
+        string? comment = null)
+    {
+        var finalDefault = generator switch
+        {
+            LogIdGenerator.ClickHouseUUIDv4 => asString ? "toString(generateUUIDv4())" : "generateUUIDv4()",
+            LogIdGenerator.ClickHouseUUIDv7 => asString ? "toString(generateUUIDv7())" : "generateUUIDv7()",
+            _ => null
+        };
+
+        var skipWrite = generator != LogIdGenerator.CSharpGuid;
+        
+        _columns.Add(new LogIdColumnWriter(name, asString)
+        {
+            Codec = codec, Default = finalDefault, Ttl = ttl, Comment = comment, SkipWrite = skipWrite
+        });
+        
+        return this;
+    }
+    
+    /// <summary>
     /// Adds a timestamp column. ClickHouse type: <c>DateTime64({precision})</c>.
     /// </summary>
     /// <param name="name">Column name.</param>
