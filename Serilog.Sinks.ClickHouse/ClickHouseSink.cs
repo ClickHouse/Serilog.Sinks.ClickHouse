@@ -33,7 +33,7 @@ public sealed class ClickHouseSink : IBatchedLogEventSink, IDisposable
     /// The sink creates and owns the <see cref="IClickHouseClient"/> internally.
     /// </summary>
     public ClickHouseSink(ClickHouseSinkOptions options)
-        : this(options, new ClickHouseClient(options.ConnectionString), ownsClient: true)
+        : this(options, new ClickHouseClient(ClickHouseClientIdentity.CreateTaggedSettings(options.ConnectionString)), ownsClient: true)
     {
     }
 

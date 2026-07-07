@@ -4,6 +4,7 @@ using Serilog.Configuration;
 using Serilog.Events;
 using Serilog.Sinks.ClickHouse.Client;
 using Serilog.Sinks.ClickHouse.Schema;
+using SinkClientIdentity = Serilog.Sinks.ClickHouse.ClickHouseClientIdentity;
 
 namespace Serilog.Sinks.ClickHouse.Configuration;
 
@@ -229,7 +230,7 @@ public static class ClickHouseSinkExtensions
         ArgumentNullException.ThrowIfNull(loggerConfiguration);
         ArgumentNullException.ThrowIfNull(settings);
 
-        var client = new ClickHouseClient(settings);
+        var client = new ClickHouseClient(settings.WithLibraryTag());
         var options = CreateOptions(tableName, database, tableCreation, minimumLevel, formatProvider, onBatchWritten, onBatchFailed);
         options.Validate();
 
