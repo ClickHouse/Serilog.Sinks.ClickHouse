@@ -18,7 +18,7 @@ jobs:
         framework: ["net6.0", "net8.0", "net9.0", "net10.0"]
     steps:
     - name: Checkout
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
 
     - name: Setup .NET
       uses: actions/setup-dotnet@v5
@@ -43,7 +43,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
 
     - name: Start ClickHouse cluster
       uses: isbang/compose-action@v2.2.0

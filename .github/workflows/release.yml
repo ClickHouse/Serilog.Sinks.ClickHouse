@@ -16,7 +16,7 @@ jobs:
     runs-on: windows-latest
     steps:
     - name: Checkout
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
 
     - name: Build & pack
       run: dotnet build Serilog.Sinks.ClickHouse/Serilog.Sinks.ClickHouse.csproj --configuration Release /p:Version=${{ inputs.version }}
