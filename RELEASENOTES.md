@@ -1,4 +1,4 @@
-## v2.3.0 (Unreleased)
+## v2.3.0
 
 - Updated `ClickHouse.Driver` to [1.4.0](https://github.com/ClickHouse/clickhouse-cs/releases/tag/1.4.0) (from 1.3.0). No sink API or configuration changes are required. One driver-level change is visible on the wire: batch inserts are now compressed with **zstd** instead of gzip by default, since the sink inserts through `InsertBinaryAsync` without overriding `InsertOptions.Compressor`. ClickHouse decodes it server-side, so this needs no action.
 - `SchemaBuilder.AddLogIdColumn()` — adds a unique identifier column for log entries with support for multiple generation strategies:
